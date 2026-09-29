@@ -1,6 +1,9 @@
 name: Diagnose open shove abstraction
 
 on:
+  push:
+    paths:
+      - .github/workflows/experiment-open-shove.yml
   workflow_dispatch:
 
 permissions:
