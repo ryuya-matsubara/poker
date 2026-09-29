@@ -39,9 +39,16 @@ jobs:
             --oop-pot-tax 0.20 \
             --output solver/preflop_blueprint.bin \
             --chart-output solver/preflop_charts.json
-      - name: Upload charts
+      - name: Export common decision histories
+        run: |
+          python3 tools/export_preflop_policy.py \
+            solver/preflop_blueprint.bin solver/preflop_policy.json \
+            --max-histories 300 --min-visits 30
+      - name: Upload preflop strategy
         uses: actions/upload-artifact@v4
         with:
-          name: preflop-charts-20bb
-          path: solver/preflop_charts.json
+          name: preflop-strategy-20bb
+          path: |
+            solver/preflop_charts.json
+            solver/preflop_policy.json
           if-no-files-found: error
