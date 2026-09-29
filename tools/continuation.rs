@@ -1,135 +1,194 @@
-//! Sampled, limited postflop continuation for preflop MCCFR terminals.
-//!
-//! Each sampled runout plays a single bet/call/fold decision on each street.
-//! A decision sees only its own cards and the public cards available then.
-//! This is a deliberately small behavioral abstraction, not a solved
-//! equilibrium. It replaces a forced showdown plus a fixed position transfer.
-
-use super::{PreflopState, PreflopTrainer, NUM_PLAYERS};
+//! Joint external-sampling CFR over a bounded three-street continuation.
+//! Each street allows check, 1/3-pot, 3/4-pot, or shove, then call/fold.
+//! There are no postflop raises. Public texture and private made/draw features
+//! are abstracted. This is an imperfect-recall approximation, not full NLHE.
+//! No fixed position transfer or prescribed hand opening ranges are used.
+use super::{PreflopState, PreflopTrainer, RegretEntry, NUM_PLAYERS};
 use crate::card::{rank, suit, Card, Hand};
 use crate::eval::{evaluate, HandRank};
 use rand::Rng;
 
-const POSTFLOP_ORDER: [usize; NUM_PLAYERS] = [4, 5, 0, 1, 2, 3];
+const ORDER: [usize; NUM_PLAYERS] = [4,5,0,1,2,3];
 
-/// Hand/draw proxy based on cards currently visible to this player only.
-/// Its purpose is to let weak hands relinquish equity to bets, while made
-/// hands and draws continue. It does not inspect an opponent's hidden cards.
-fn hand_signal(hole: Hand, board: Hand, street: usize) -> f32 {
-    let full = hole.union(board);
-    let made = evaluate(full).hand_rank();
-    let board_high = board.iter().map(rank).max().unwrap_or(0);
-    let hole_cards: Vec<Card> = hole.iter().collect();
-    let hole_high = hole_cards.iter().map(|&c| rank(c)).max().unwrap_or(0);
-    let pair = rank(hole_cards[0]) == rank(hole_cards[1]);
-    let mut value = match made {
-        HandRank::StraightFlush | HandRank::FourOfAKind | HandRank::FullHouse => 0.98,
-        HandRank::Flush | HandRank::Straight => 0.94,
-        HandRank::ThreeOfAKind => 0.89,
-        HandRank::TwoPair => 0.79,
-        HandRank::OnePair if pair && hole_high > board_high => 0.76,
-        HandRank::OnePair if hole.iter().any(|c| rank(c) == board_high) => 0.67,
-        HandRank::OnePair => 0.39,
-        HandRank::HighCard => 0.08 + hole_high as f32 * 0.008,
-    };
-    if street < 5 {
-        let mut suit_counts = [0;4];
-        for c in full.iter() { suit_counts[suit(c) as usize] += 1; }
-        if hole.iter().any(|c| suit_counts[suit(c) as usize] == 4) {
-            value += if street == 3 { 0.22 } else { 0.15 };
-        }
-        let ranks: u16 = full.iter().fold(0, |mask, c| mask | (1 << rank(c)));
-        let wheel = (ranks << 1) | ((ranks >> 12) & 1);
-        let has_straight_draw = (0..=9).any(|low| ((wheel >> low) & 31).count_ones() >= 4);
-        if has_straight_draw { value += if street == 3 { 0.14 } else { 0.09 }; }
-    }
-    value.min(0.99)
+#[derive(Clone, Copy, Hash, Eq, PartialEq)]
+pub(super) struct InfoKey(pub u64);
+
+#[derive(Clone)]
+struct Node {
+    state: PreflopState,
+    board: Hand,
+    runout: [Card; 5],
+    street: usize,
+    checked: u8,
+    pending: u8,
+    bettor: Option<usize>,
+    target: i32,
+    bet_kind: u8,
+    previous: u8,
 }
 
-fn wager(state: &mut PreflopState, p: usize, amount: i32) -> i32 {
-    let paid = state.stacks[p].min(amount.max(0));
+fn actionable(state: &PreflopState) -> u8 {
+    (0..NUM_PLAYERS).filter(|&p| !state.folded[p] && !state.all_in[p])
+        .fold(0, |mask,p| mask | (1<<p))
+}
+
+fn wager(state: &mut PreflopState, p: usize, amount: i32) {
+    let paid = amount.max(0).min(state.stacks[p]);
     state.stacks[p] -= paid;
     state.bets[p] += paid;
-    if state.stacks[p] == 0 { state.all_in[p] = true; }
-    paid
+    state.all_in[p] = state.stacks[p] == 0;
 }
 
-fn play_street(state: &mut PreflopState, board: Hand, street: usize, rng: &mut impl Rng) {
-    let players: Vec<usize> = POSTFLOP_ORDER.iter().copied()
-        .filter(|&p| !state.folded[p] && !state.all_in[p]).collect();
-    if players.len() < 2 { return; }
-    let pot: i32 = state.bets.iter().sum();
-    let count = state.active_count();
-    let spr = players.iter().map(|&p| state.stacks[p]).min().unwrap_or(0) as f32 / pot.max(1) as f32;
-    let bet_fraction = match street { 3 => 0.34, 4 => 0.50, _ => 0.66 };
-    // Higher preflop investment and lower SPR make one pair more valuable.
-    let commitment = if state.n_raises >= 2 && spr < 2.0 { 0.06 } else { 0.0 };
-    let mut bettor = None;
-    let mut bet = 0;
-    for &p in &players {
-        let signal = hand_signal(state.holes[p], board, street) + commitment;
-        let initiative = state.last_aggressor == Some(p as u8) && street == 3;
-        let propensity = if initiative {
-            // The preflop raiser may continue with pair/draw hands after a
-            // check. High-card blockers and suited hands have some bluffs.
-            let cards: Vec<Card> = state.holes[p].iter().collect();
-            let high = cards.iter().map(|&c| rank(c)).max().unwrap_or(0);
-            let suited = suit(cards[0]) == suit(cards[1]);
-            if signal >= 0.79 { 0.82 } else if signal >= 0.56 { 0.70 }
-            else if signal >= 0.28 { 0.65 }
-            else if high >= 11 { 0.38 }
-            else if suited { 0.23 } else { 0.04 }
-        } else if signal >= 0.79 { 0.65 } else if signal >= 0.56 { 0.35 }
-            else if signal >= 0.28 && street < 5 { 0.10 } else { 0.03 };
-        let multiway = (1.0 - 0.14 * (count.saturating_sub(2)) as f32).max(0.40);
-        if rng.gen::<f32>() < propensity * multiway {
-            let target = ((pot as f32 * bet_fraction).round() as i32).max(1);
-            bet = wager(state, p, target);
-            bettor = Some(p);
-            break;
-        }
+/// Features use only the acting player's cards and the current public board.
+fn features(hole: Hand, board: Hand, street: usize) -> (u8,u8,u8) {
+    let mut br = [0u8;13];
+    let mut full = [0u8;13];
+    let mut suits = [0u8;4];
+    let mut mask = 0u16;
+    for c in board.iter() { br[rank(c) as usize]+=1; }
+    full.copy_from_slice(&br);
+    for c in hole.union(board).iter() {
+        suits[suit(c) as usize]+=1;
+        mask |= 1<<rank(c);
     }
-    let Some(aggressor) = bettor else { return; };
-    // Every other non-all-in player faces exactly one decision, including
-    // earlier checkers. All-ins already in the pot remain eligible at showdown.
-    for &p in &players {
-        if p == aggressor || state.folded[p] { continue; }
-        let call = bet.min(state.stacks[p]);
-        let odds = call as f32 / (state.bets.iter().sum::<i32>() + call).max(1) as f32;
-        let signal = hand_signal(state.holes[p], board, street) + commitment;
-        let threshold = 0.16 + odds * 0.65 + 0.06 * (count.saturating_sub(2)) as f32;
-        let call_chance = (0.68 + (signal - threshold) * 1.6).clamp(0.02, 0.99);
-        if rng.gen::<f32>() < call_chance { wager(state, p, call); }
-        else { state.folded[p] = true; }
+    for c in hole.iter() { full[rank(c) as usize]+=1; }
+    let cards: Vec<Card> = hole.iter().collect();
+    let hi = cards.iter().map(|&c| rank(c)).max().unwrap();
+    let lo = cards.iter().map(|&c| rank(c)).min().unwrap();
+    let bh = board.iter().map(rank).max().unwrap();
+    let private_pair = hi==lo;
+    let paired_rank = (0..13).rev().find(|&r| full[r]>=2 && br[r]<full[r]);
+    let made = match evaluate(hole.union(board)).hand_rank() {
+        HandRank::StraightFlush => 15,
+        HandRank::FourOfAKind => if br.iter().any(|&n| n==4) { 2 } else {14},
+        HandRank::FullHouse => 13,
+        HandRank::Flush => 12,
+        HandRank::Straight => 11,
+        HandRank::ThreeOfAKind => if br.iter().any(|&n| n==3) {2} else {10},
+        HandRank::TwoPair => {
+            if private_pair && br.iter().any(|&n|n>=2) {
+                if hi>bh {8} else {4}
+            } else if cards.iter().filter(|&&c|br[rank(c) as usize]>0).count()==2 {9}
+            else if let Some(r)=paired_rank {if r as u8>=bh {7}else{5}} else {2}
+        },
+        HandRank::OnePair => if let Some(r)=paired_rank {
+            if private_pair && hi>bh {8}
+            else if r as u8 == bh {if hi.max(lo)>=10 {7}else{6}}
+            else if private_pair {3} else {4}
+        } else {2},
+        HandRank::HighCard => if hi==12 {1}else{0},
+    };
+    let mut draw=0;
+    if street<5 {
+        let flush = hole.iter().any(|c|suits[suit(c) as usize]==4);
+        let wheel=(mask<<1)|((mask>>12)&1);
+        let straight=(0..=9).any(|low|((wheel>>low)&31).count_ones()>=4);
+        draw=match (flush,straight) {(false,false)=>0,(false,true)=>1,(true,false)=>2,_=>3};
+    }
+    let paired=br.iter().any(|&n|n>=2);
+    let max_suit=board.iter().fold([0u8;4],|mut a,c|{a[suit(c) as usize]+=1;a}).into_iter().max().unwrap();
+    let texture=(paired as u8)*2+(max_suit>=3) as u8;
+    (made,draw,texture)
+}
+
+fn key(node: &Node,p: usize,n: usize) -> InfoKey {
+    let (made,draw,texture)=features(node.state.holes[p],node.board,node.street);
+    let active=(0..NUM_PLAYERS).filter(|&i|!node.state.folded[i]).fold(0u8,|m,i|m|(1<<i));
+    let pot: i32=node.state.bets.iter().sum();
+    let spr=node.state.stacks[p] as f32/pot.max(1) as f32;
+    let spr_bucket=if spr<0.5 {0}else if spr<1.0 {1}else if spr<2.0 {2}else if spr<4.0 {3}else{4};
+    let mut value=made as u64;
+    let fields=[(draw as u64,2),(texture as u64,2),(p as u64,3),
+        ((node.street-3) as u64,2),(active as u64,6),(node.checked as u64,6),
+        (node.bet_kind as u64,2),(node.bettor.unwrap_or(6) as u64,3),
+        (node.state.n_raises.min(3) as u64,2),(spr_bucket,3),
+        (node.state.last_aggressor.unwrap_or(6) as u64,3),
+        (node.previous as u64,4),(n as u64,3)];
+    let mut shift=4;
+    for (field,bits) in fields {value|=field<<shift;shift+=bits;}
+    InfoKey(value)
+}
+
+fn terminal(node: &Node,t: u8) -> f32 {
+    if node.state.active_count()==1 {
+        let winner=(0..NUM_PLAYERS).find(|&p|!node.state.folded[p]).unwrap();
+        node.state.payoff_fold(winner as u8)[t as usize]
+    } else {
+        let board=node.runout.iter().fold(Hand::new(),|h,&c|h.add(c));
+        node.state.payoff_showdown(board)[t as usize]
     }
 }
 
-pub(super) fn terminal_value(trainer: &mut PreflopTrainer, state: &PreflopState, traverser: u8) -> f32 {
-    let mut dead = Hand::new();
-    for p in 0..NUM_PLAYERS { dead = dead.union(state.holes[p]); }
-    let mut total = 0.0;
-    for _ in 0..trainer.board_samples {
-        let mut board = Hand::new();
-        let mut used = dead;
-        let mut runout = [0;5];
-        for card in &mut runout {
-            *card = trainer.draw_excluding(used);
-            used = used.add(*card);
-        }
-        let mut continued = state.clone();
-        for (i, card) in runout.iter().enumerate() {
-            board = board.add(*card);
-            if i >= 2 && continued.active_count() > 1 {
-                play_street(&mut continued, board, i + 1, &mut trainer.rng);
+fn cfr(trainer: &mut PreflopTrainer,node: &Node,t: u8) -> f32 {
+    if node.state.folded[t as usize] {return -(node.state.bets[t as usize] as f32);}
+    if node.state.active_count()<=1 {return terminal(node,t);}
+    if node.pending==0 || actionable(&node.state).count_ones()<2 && node.bettor.is_none() {
+        if node.street==5 || actionable(&node.state).count_ones()<2 {return terminal(node,t);}
+        let mut next=node.clone();
+        next.street+=1;
+        next.board=next.board.add(next.runout[next.street-1]);
+        next.previous=((node.previous<<2)|node.bet_kind)&15;
+        next.checked=0;next.bettor=None;next.target=0;next.bet_kind=0;
+        next.pending=actionable(&next.state);
+        return cfr(trainer,&next,t);
+    }
+    let p=ORDER.into_iter().find(|&p|node.pending&(1<<p)!=0).unwrap();
+    let pot: i32=node.state.bets.iter().sum();
+    // 0 means check/fold; facing a bet, 1 means call.
+    let actions: Vec<i32>=if node.bettor.is_some() {vec![0,node.target]}
+        else {
+            let stack=node.state.stacks[p];
+            let mut v=vec![0];
+            for x in [(pot as f32/3.0).round() as i32,(pot as f32*0.75).round() as i32,stack] {
+                let x=x.max(1).min(stack);
+                if !v.contains(&x) {v.push(x);}
             }
+            v
+        };
+    let k=key(node,p,actions.len());
+    let strategy=trainer.postflop.entry(k).or_insert_with(||RegretEntry::new(actions.len())).current_strategy();
+    let apply=|a:usize| {
+        let mut child=node.clone();
+        child.pending&=!(1<<p);
+        if node.bettor.is_some() {
+            if a==0 {child.state.folded[p]=true;}
+            else {wager(&mut child.state,p,node.target);}
+        } else if a==0 {child.checked|=1<<p;}
+        else {
+            wager(&mut child.state,p,actions[a]);
+            child.bettor=Some(p);child.target=actions[a];
+            child.bet_kind=if actions[a]==node.state.stacks[p] {3}else if a==1 {1}else{2};
+            child.pending=actionable(&child.state)&!(1<<p);
         }
-        let payoffs = if continued.active_count() == 1 {
-            let winner = (0..NUM_PLAYERS).find(|&p| !continued.folded[p]).unwrap();
-            continued.payoff_fold(winner as u8)
-        } else { continued.payoff_showdown(board) };
-        total += payoffs[traverser as usize];
+        child
+    };
+    if p==t as usize {
+        let values:Vec<f32>=(0..actions.len()).map(|a|cfr(trainer,&apply(a),t)).collect();
+        let value: f32=values.iter().zip(&strategy).map(|(v,s)|v*s).sum();
+        let weight=trainer.blueprint.iterations as f32+1.0;
+        let entry=trainer.postflop.get_mut(&k).unwrap();
+        for a in 0..actions.len() {
+            entry.regrets[a]=(entry.regrets[a]+values[a]-value).max(0.0);
+            entry.cum_strategy[a]+=weight*strategy[a];
+        }
+        value
+    } else {
+        let roll=trainer.rng.gen::<f32>();
+        let mut sum=0.0;
+        let a=strategy.iter().position(|s|{sum+=s;roll<sum}).unwrap_or(actions.len()-1);
+        cfr(trainer,&apply(a),t)
     }
-    total / trainer.board_samples as f32
+}
+
+pub(super) fn terminal_value(trainer: &mut PreflopTrainer,state: &PreflopState,t: u8) -> f32 {
+    if state.folded[t as usize] {return -(state.bets[t as usize] as f32);}
+    let mut dead=state.holes.iter().fold(Hand::new(),|h,&hole|h.union(hole));
+    let mut runout=[0;5];
+    for c in &mut runout {*c=trainer.draw_excluding(dead);dead=dead.add(*c);}
+    let board=runout[..3].iter().fold(Hand::new(),|h,&c|h.add(c));
+    let node=Node{state:state.clone(),board,runout,street:3,checked:0,
+        pending:actionable(state),bettor:None,target:0,bet_kind:0,previous:0};
+    cfr(trainer,&node,t)
 }
 
 #[cfg(test)]
@@ -137,37 +196,27 @@ mod tests {
     use super::*;
     use crate::card::card;
     use crate::preflop::PreflopBetConfig;
-
     #[test]
-    fn future_cards_do_not_enter_flop_decision() {
-        let hole = Hand::new().add(card(10,3)).add(card(3,3));
-        let flop = Hand::new().add(card(0,3)).add(card(4,3)).add(card(9,1));
-        let river = flop.add(card(12,3)).add(card(1,0));
-        assert!(hand_signal(hole,flop,3) < 0.5);
-        assert_ne!(hand_signal(hole,flop,3),hand_signal(hole,river,5));
+    fn features_only_use_visible_cards() {
+        let hole=Hand::new().add(card(10,3)).add(card(3,3));
+        let flop=Hand::new().add(card(0,3)).add(card(4,3)).add(card(9,1));
+        let river=flop.add(card(12,3)).add(card(1,0));
+        assert_ne!(features(hole,flop,3),features(hole,river,5));
     }
-
     #[test]
-    fn continuation_preserves_chips() {
-        let mut trainer = PreflopTrainer::new(PreflopBetConfig::default(), 7);
-        let mut state = PreflopState::new_6max(PreflopBetConfig::default());
-        let mut dead = Hand::new();
-        for p in 0..NUM_PLAYERS {
-            let c1 = trainer.draw_excluding(dead); dead = dead.add(c1);
-            let c2 = trainer.draw_excluding(dead); dead = dead.add(c2);
-            state.holes[p] = Hand::new().add(c1).add(c2);
+    fn check_call_and_fold_preserve_zero_sum() {
+        let mut trainer=PreflopTrainer::new(PreflopBetConfig::default(),7);
+        let mut state=PreflopState::new_6max(PreflopBetConfig::default());
+        let mut dead=Hand::new();
+        for p in 0..6 {
+            let a=trainer.draw_excluding(dead);dead=dead.add(a);
+            let b=trainer.draw_excluding(dead);dead=dead.add(b);
+            state.holes[p]=Hand::new().add(a).add(b);
         }
-        let mut board = Hand::new();
-        for street in 3..=5 {
-            while board.count() < street as u32 {
-                let c = trainer.draw_excluding(dead); dead = dead.add(c); board = board.add(c);
-            }
-            play_street(&mut state, board, street, &mut trainer.rng);
-        }
-        let payoffs = if state.active_count() == 1 {
-            let winner = (0..NUM_PLAYERS).find(|&p| !state.folded[p]).unwrap();
-            state.payoff_fold(winner as u8)
-        } else { state.payoff_showdown(board) };
-        assert!(payoffs.iter().sum::<f32>().abs() < 0.001);
+        let mut board=Hand::new();
+        for _ in 0..5 {let c=trainer.draw_excluding(dead);dead=dead.add(c);board=board.add(c);}
+        wager(&mut state,0,10);wager(&mut state,1,10);
+        state.folded[2]=true;
+        assert!(state.payoff_showdown(board).iter().sum::<f32>().abs()<0.001);
     }
 }
