@@ -35,6 +35,10 @@ def patch(source_dir):
     # The upstream side-pot test assumes 100BB despite our 20BB patch.
     source = replace_once(source, 'state.stacks[0] = 50; // UTG 50 chips behind',
         'state.stacks[0] = 50; // explicit side-pot fixture\n        state.stacks[4] = 199;\n        state.stacks[5] = 198;')
+    for old, new in [('assert_eq!(state.stacks[4], 199);', 'assert_eq!(state.stacks[4], 39);'),
+                     ('assert_eq!(state.stacks[5], 198);', 'assert_eq!(state.stacks[5], 38);'),
+                     ('assert_eq!(state.stacks[0], 200);', 'assert_eq!(state.stacks[0], 40);')]:
+        source = replace_once(source, old, new)
     source += '''
 #[cfg(test)]
 mod poker_app_regression_tests {
