@@ -1,0 +1,51 @@
+name: Diagnose open shove abstraction
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  train:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Pin solver and add limited continuation
+        run: |
+          git clone https://github.com/exinori/DCFR-SOLVER.git solver
+          git -C solver checkout 4ade6a9e15a841c41867afde1258b9d110cd6fb1
+          test "$(git -C solver rev-parse HEAD)" = 4ade6a9e15a841c41867afde1258b9d110cd6fb1
+          python3 tools/patch_solver.py solver/src
+          python3 - <<'PY'
+          from pathlib import Path
+          path=Path('solver/src/main.rs')
+          source=path.read_text()
+          old='min_allin_depth: 1,  // No open-shove; all-in allowed after first raise'
+          assert source.count(old)==1
+          path.write_text(source.replace(old,'min_allin_depth: 0,  // Experimental open shove'))
+          PY
+      - name: Regression tests
+        run: |
+          cargo test --release --lib --manifest-path solver/Cargo.toml preflop::
+          node tools/test_preflop_frontend.cjs
+      - name: Train with 20BB open shove
+        run: |
+          mkdir experiment
+          cargo run --release --manifest-path solver/Cargo.toml -- preflop \
+            --iterations 30000000 --seed 42 \
+            --open-size 5 --sb-open-size 6 --bet3-size 14 --bet4-size 28 \
+            --oop-pot-tax 0.00 \
+            --output experiment/blueprint.bin --chart-output experiment/chart.json
+          python3 tools/analyze_preflop_charts.py experiment/chart.json --output experiment/frequencies.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: open-shove-seed42-30m
+          path: |
+            experiment/chart.json
+            experiment/frequencies.json
+            experiment/frequencies.csv
+          if-no-files-found: warn

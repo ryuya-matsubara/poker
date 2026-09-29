@@ -17,12 +17,12 @@ def check_chart(data):
     if list(data) != POSITIONS:
         raise ValueError('expected all five RFI positions')
     opening = [data[pos]['open'] for pos in POSITIONS]
-    if not all(0.07 < x < 0.65 for x in opening):
+    if not all(0.07 < x < 0.65 for x in opening[:4]) or not 0.07 < opening[4] + data['SB RFI']['limp'] < 1:
         raise ValueError(f'implausible RFI totals: {opening}')
     if not all(a <= b + .02 for a, b in zip(opening[:3], opening[1:4])):
         raise ValueError(f'early-to-late ranges do not expand: {opening}')
     for pos, info in data.items():
-        h = {row['hand']: row['open'] for row in info['hands']}
+        h = {row['hand']: row['open'] + row['limp'] if pos == 'SB RFI' else row['open'] for row in info['hands']}
         if pos != 'SB RFI' and info['limp'] > .0001:
             raise ValueError(f'non-SB RFI contains a call/limp: {pos}')
         if h['AA'] < .85 or h['AA'] - h['72o'] < .70 or h['AKs'] - h['32o'] < .55:

@@ -17,7 +17,7 @@ def report(path):
             if not actions or abs(sum(actions.values()) - 1) > 0.002:
                 raise ValueError(f'invalid strategy: {spot["spot_name"]} {label}')
             rows.append({'hand': label, 'combos': combos,
-                         'open': sum(p for action, p in actions.items() if action.startswith('raise')),
+                         'open': sum(p for action, p in actions.items() if action.startswith('raise') or action == 'allin'),
                          'limp': actions.get('call', 0), 'actions': actions})
         if len(rows) != 169 or sum(r['combos'] for r in rows) != 1326:
             raise ValueError(f'incomplete chart: {spot["spot_name"]}')
