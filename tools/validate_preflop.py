@@ -21,6 +21,10 @@ def check_chart(data):
         raise ValueError(f'implausible RFI totals: {opening}')
     if not all(a <= b + .02 for a, b in zip(opening[:3], opening[1:4])):
         raise ValueError(f'early-to-late ranges do not expand: {opening}')
+    # A very narrow BTN range is a known failure of forced-showdown terminals.
+    # This is an anomaly gate, not a prescribed hand-by-hand opening chart.
+    if data['BTN RFI']['open'] < .33:
+        raise ValueError(f'BTN RFI remains abnormally narrow: {data["BTN RFI"]["open"]:.1%}')
     for pos, info in data.items():
         h = {row['hand']: row['open'] + row['limp'] if pos == 'SB RFI' else row['open'] for row in info['hands']}
         if pos != 'SB RFI' and info['limp'] > .0001:
