@@ -129,9 +129,9 @@ mod tests {
 
     #[test]
     fn future_cards_do_not_enter_flop_decision() {
-        let hole = Hand::new().add(card(10,0)).add(card(3,1));
-        let flop = Hand::new().add(card(1,2)).add(card(5,0)).add(card(9,1));
-        let river = flop.add(card(12,3)).add(card(0,0));
+        let hole = Hand::new().add(card(10,3)).add(card(3,3));
+        let flop = Hand::new().add(card(0,3)).add(card(4,3)).add(card(9,1));
+        let river = flop.add(card(12,3)).add(card(1,0));
         assert!(hand_signal(hole,flop,3) < 0.5);
         assert_ne!(hand_signal(hole,flop,3),hand_signal(hole,river,5));
     }
