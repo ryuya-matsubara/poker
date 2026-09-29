@@ -32,6 +32,7 @@ vm.runInNewContext(script, context);
 (async () => {
   await new Promise(resolve => setImmediate(resolve));
   const {newGame,handBucket,solverOptions,doAction,heroStrategyAdvice,getGame} = context.hooks;
+  const openShove = policy.min_allin_depth === 0;
   assert.equal(handBucket([{r:12,s:'♠'},{r:5,s:'♥'}]), 139, 'Q5o canonical bucket');
   newGame();
   const game = getGame();
@@ -39,11 +40,11 @@ vm.runInNewContext(script, context);
   for (const id of [3,4,5]) doAction(game.players[id], 'fold');
   assert.equal(game.actor, 0, 'hero is BTN');
   assert.equal(game.solverHistory, '000000', 'three folds use action index 0');
-  assert.deepEqual(Array.from(solverOptions(game.players[0]), a=>a.kind), ['fold','raise']);
+  assert.deepEqual(Array.from(solverOptions(game.players[0]), a=>a.kind), openShove?['fold','raise','allin']:['fold','raise']);
   assert.equal(solverOptions(game.players[0])[1].target, 2500);
-  assert.deepEqual(Array.from(solverOptions(game.players[1]), a=>a.kind), ['fold','call','raise']);
+  assert.deepEqual(Array.from(solverOptions(game.players[1]), a=>a.kind), openShove?['fold','call','raise','allin']:['fold','call','raise']);
   assert.equal(solverOptions(game.players[1])[2].target, 3000);
-  assert.deepEqual(Array.from(solverOptions(game.players[2]), a=>a.kind), ['check','raise']);
+  assert.deepEqual(Array.from(solverOptions(game.players[2]), a=>a.kind), openShove?['check','raise','allin']:['check','raise']);
   game.currentBet = 2500; game.solverDepth = 1;
   assert.deepEqual(Array.from(solverOptions(game.players[0]), a=>a.kind), ['fold','call','raise','allin']);
   assert.equal(solverOptions(game.players[0])[2].target, 7000);
@@ -55,5 +56,9 @@ vm.runInNewContext(script, context);
   const root = policy.histories['000000'][139];
   assert.ok(Math.abs(root[1] - chart.actions.find(a=>a.action==='raise 5').prob) < .003,
     'UI policy and chart must agree for BTN Q5o');
+  if (openShove) {
+    assert.ok(Math.abs(root[2] - chart.actions.find(a=>a.action==='allin').prob) < .003);
+    assert.match(advice,/オールイン/);
+  }
   console.log('frontend preflop integration OK');
 })().catch(error => {console.error(error);process.exitCode=1;});

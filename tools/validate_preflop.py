@@ -25,6 +25,9 @@ def check_chart(data):
     # This is an anomaly gate, not a prescribed hand-by-hand opening chart.
     if data['BTN RFI']['open'] < .33:
         raise ValueError(f'BTN RFI remains abnormally narrow: {data["BTN RFI"]["open"]:.1%}')
+    for pos, ceiling in [('UTG RFI',.25),('HJ RFI',.30),('CO RFI',.40)]:
+        if data[pos]['open'] > ceiling:
+            raise ValueError(f'{pos} remains abnormally wide: {data[pos]["open"]:.1%}')
     for pos, info in data.items():
         h = {row['hand']: row['open'] + row['limp'] if pos == 'SB RFI' else row['open'] for row in info['hands']}
         if pos != 'SB RFI' and info['limp'] > .0001:
@@ -58,9 +61,15 @@ def compare(a, b, name):
 
 def check_policy(policy_path, charts):
     policy = json.loads(policy_path.read_text())
-    if policy['max_stack_bb'] != 20 or policy['bet_sizes_half_bb'] != [[5],[14],[28]]:
+    if policy['max_stack_bb'] != 20 or policy['bet_sizes_half_bb'] != [[5],[14],[28]] or policy.get('min_allin_depth') != 0 or policy.get('oop_pot_tax') != 0:
         raise ValueError('stack or action abstraction mismatch')
     histories = policy['histories']
+    for history, rows in histories.items():
+        if len(rows) != 169:
+            raise ValueError(f'invalid bucket count: {history}')
+        for row in rows:
+            if row is not None and (not all(math.isfinite(p) and 0 <= p <= 1 for p in row) or abs(sum(row)-1) > .002):
+                raise ValueError(f'invalid exported probability: {history}')
     for pos, prefix in zip(POSITIONS, ['','00','0000','000000','00000000']):
         rows = histories.get(prefix)
         if rows is None or len(rows) != 169:
@@ -71,7 +80,7 @@ def check_policy(policy_path, charts):
     # Q5o is bucket 91 + 10*9/2 + 3; compare chart and full-policy exports.
     btn = next(r for r in charts['BTN RFI']['hands'] if r['hand']=='Q5o')
     policy_btn = histories['000000'][139]
-    if policy_btn is None or len(policy_btn) != 2 or abs(policy_btn[1]-btn['open']) > .003:
+    if policy_btn is None or len(policy_btn) != 3 or abs(sum(policy_btn[1:])-btn['open']) > .003:
         raise ValueError('BTN Q5o policy does not match the RFI chart')
 
 
