@@ -23,27 +23,27 @@ fn hand_signal(hole: Hand, board: Hand, street: usize) -> f32 {
     let hole_high = hole_cards.iter().map(|&c| rank(c)).max().unwrap_or(0);
     let pair = rank(hole_cards[0]) == rank(hole_cards[1]);
     let mut value = match made {
-        HandRank::StraightFlush | HandRank::FourOfAKind | HandRank::FullHouse => .98,
-        HandRank::Flush | HandRank::Straight => .94,
-        HandRank::ThreeOfAKind => .89,
-        HandRank::TwoPair => .79,
-        HandRank::OnePair if pair && hole_high > board_high => .76,
-        HandRank::OnePair if hole.iter().any(|c| rank(c) == board_high) => .67,
-        HandRank::OnePair => .39,
-        HandRank::HighCard => .08 + hole_high as f32 * .008,
+        HandRank::StraightFlush | HandRank::FourOfAKind | HandRank::FullHouse => 0.98,
+        HandRank::Flush | HandRank::Straight => 0.94,
+        HandRank::ThreeOfAKind => 0.89,
+        HandRank::TwoPair => 0.79,
+        HandRank::OnePair if pair && hole_high > board_high => 0.76,
+        HandRank::OnePair if hole.iter().any(|c| rank(c) == board_high) => 0.67,
+        HandRank::OnePair => 0.39,
+        HandRank::HighCard => 0.08 + hole_high as f32 * 0.008,
     };
     if street < 5 {
         let mut suit_counts = [0;4];
         for c in full.iter() { suit_counts[suit(c) as usize] += 1; }
         if hole.iter().any(|c| suit_counts[suit(c) as usize] == 4) {
-            value += if street == 3 { .22 } else { .15 };
+            value += if street == 3 { 0.22 } else { 0.15 };
         }
         let ranks: u16 = full.iter().fold(0, |mask, c| mask | (1 << rank(c)));
         let wheel = (ranks << 1) | ((ranks >> 12) & 1);
         let has_straight_draw = (0..=9).any(|low| ((wheel >> low) & 31).count_ones() >= 4);
-        if has_straight_draw { value += if street == 3 { .14 } else { .09 }; }
+        if has_straight_draw { value += if street == 3 { 0.14 } else { 0.09 }; }
     }
-    value.min(.99)
+    value.min(0.99)
 }
 
 fn wager(state: &mut PreflopState, p: usize, amount: i32) -> i32 {
@@ -61,16 +61,16 @@ fn play_street(state: &mut PreflopState, board: Hand, street: usize, rng: &mut i
     let pot: i32 = state.bets.iter().sum();
     let count = state.active_count();
     let spr = players.iter().map(|&p| state.stacks[p]).min().unwrap_or(0) as f32 / pot.max(1) as f32;
-    let bet_fraction = match street { 3 => .34, 4 => .50, _ => .66 };
+    let bet_fraction = match street { 3 => 0.34, 4 => 0.50, _ => 0.66 };
     // Higher preflop investment and lower SPR make one pair more valuable.
-    let commitment = if state.n_raises >= 2 && spr < 2.0 { .06 } else { 0.0 };
+    let commitment = if state.n_raises >= 2 && spr < 2.0 { 0.06 } else { 0.0 };
     let mut bettor = None;
     let mut bet = 0;
     for &p in &players {
         let signal = hand_signal(state.holes[p], board, street) + commitment;
-        let propensity = if signal >= .79 { .78 } else if signal >= .56 { .57 }
-            else if signal >= .28 && street < 5 { .22 } else { .065 };
-        let multiway = (1.0 - .14 * (count.saturating_sub(2)) as f32).max(.40);
+        let propensity = if signal >= 0.79 { 0.78 } else if signal >= 0.56 { 0.57 }
+            else if signal >= 0.28 && street < 5 { 0.22 } else { 0.065 };
+        let multiway = (1.0 - 0.14 * (count.saturating_sub(2)) as f32).max(0.40);
         if rng.gen::<f32>() < propensity * multiway {
             let target = ((pot as f32 * bet_fraction).round() as i32).max(1);
             bet = wager(state, p, target);
@@ -86,8 +86,8 @@ fn play_street(state: &mut PreflopState, board: Hand, street: usize, rng: &mut i
         let call = bet.min(state.stacks[p]);
         let odds = call as f32 / (state.bets.iter().sum::<i32>() + call).max(1) as f32;
         let signal = hand_signal(state.holes[p], board, street) + commitment;
-        let threshold = .21 + odds * .75 + .06 * (count.saturating_sub(2)) as f32;
-        let call_chance = (.48 + (signal - threshold) * 2.3).clamp(.02, .99);
+        let threshold = 0.21 + odds * 0.75 + 0.06 * (count.saturating_sub(2)) as f32;
+        let call_chance = (0.48 + (signal - threshold) * 2.3).clamp(0.02, 0.99);
         if rng.gen::<f32>() < call_chance { wager(state, p, call); }
         else { state.folded[p] = true; }
     }
@@ -132,7 +132,7 @@ mod tests {
         let hole = Hand::new().add(card(10,0)).add(card(3,1));
         let flop = Hand::new().add(card(1,2)).add(card(5,0)).add(card(9,1));
         let river = flop.add(card(12,3)).add(card(0,0));
-        assert!(hand_signal(hole,flop,3) < .5);
+        assert!(hand_signal(hole,flop,3) < 0.5);
         assert_ne!(hand_signal(hole,flop,3),hand_signal(hole,river,5));
     }
 
@@ -157,6 +157,6 @@ mod tests {
             let winner = (0..NUM_PLAYERS).find(|&p| !state.folded[p]).unwrap();
             state.payoff_fold(winner as u8)
         } else { state.payoff_showdown(board) };
-        assert!(payoffs.iter().sum::<f32>().abs() < .001);
+        assert!(payoffs.iter().sum::<f32>().abs() < 0.001);
     }
 }
