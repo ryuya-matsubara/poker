@@ -68,8 +68,19 @@ fn play_street(state: &mut PreflopState, board: Hand, street: usize, rng: &mut i
     let mut bet = 0;
     for &p in &players {
         let signal = hand_signal(state.holes[p], board, street) + commitment;
-        let propensity = if signal >= 0.79 { 0.78 } else if signal >= 0.56 { 0.57 }
-            else if signal >= 0.28 && street < 5 { 0.22 } else { 0.065 };
+        let initiative = state.last_aggressor == Some(p as u8) && street == 3;
+        let propensity = if initiative {
+            // The preflop raiser may continue with pair/draw hands after a
+            // check. High-card blockers and suited hands have some bluffs.
+            let cards: Vec<Card> = state.holes[p].iter().collect();
+            let high = cards.iter().map(|&c| rank(c)).max().unwrap_or(0);
+            let suited = suit(cards[0]) == suit(cards[1]);
+            if signal >= 0.79 { 0.82 } else if signal >= 0.56 { 0.70 }
+            else if signal >= 0.28 { 0.65 }
+            else if high >= 11 { 0.38 }
+            else if suited { 0.23 } else { 0.04 }
+        } else if signal >= 0.79 { 0.65 } else if signal >= 0.56 { 0.35 }
+            else if signal >= 0.28 && street < 5 { 0.10 } else { 0.03 };
         let multiway = (1.0 - 0.14 * (count.saturating_sub(2)) as f32).max(0.40);
         if rng.gen::<f32>() < propensity * multiway {
             let target = ((pot as f32 * bet_fraction).round() as i32).max(1);
@@ -86,8 +97,8 @@ fn play_street(state: &mut PreflopState, board: Hand, street: usize, rng: &mut i
         let call = bet.min(state.stacks[p]);
         let odds = call as f32 / (state.bets.iter().sum::<i32>() + call).max(1) as f32;
         let signal = hand_signal(state.holes[p], board, street) + commitment;
-        let threshold = 0.21 + odds * 0.75 + 0.06 * (count.saturating_sub(2)) as f32;
-        let call_chance = (0.48 + (signal - threshold) * 2.3).clamp(0.02, 0.99);
+        let threshold = 0.16 + odds * 0.65 + 0.06 * (count.saturating_sub(2)) as f32;
+        let call_chance = (0.68 + (signal - threshold) * 1.6).clamp(0.02, 0.99);
         if rng.gen::<f32>() < call_chance { wager(state, p, call); }
         else { state.folded[p] = true; }
     }

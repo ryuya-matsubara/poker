@@ -19,7 +19,7 @@ def check_chart(data):
     opening = [data[pos]['open'] for pos in POSITIONS]
     if not all(0.07 < x < 0.65 for x in opening):
         raise ValueError(f'implausible RFI totals: {opening}')
-    if not all(a + .02 >= b for a, b in zip(opening[:3], opening[1:4])):
+    if not all(a <= b + .02 for a, b in zip(opening[:3], opening[1:4])):
         raise ValueError(f'early-to-late ranges do not expand: {opening}')
     for pos, info in data.items():
         h = {row['hand']: row['open'] for row in info['hands']}

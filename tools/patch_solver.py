@@ -23,6 +23,16 @@ def patch(source_dir):
     source = replace_once(source, 'stacks[5] = 200 - 2;', 'stacks[5] = 40 - 2;')
     source = replace_once(source, 'board_samples: 10,', 'board_samples: 3,')
     source = replace_once(source, 'oop_pot_tax: 0.20,', 'oop_pot_tax: 0.0,')
+    source = replace_once(source, '    pub last_raise_size: i32,',
+        '    pub last_raise_size: i32,\n    pub last_aggressor: Option<u8>,')
+    source = replace_once(source, 'last_raise_size: 2, // BB = 2 chips as min raise reference',
+        'last_raise_size: 2, // BB = 2 chips as min raise reference\n            last_aggressor: None,')
+    source = replace_once(source, '            last_raise_size: 2,\n        }',
+        '            last_raise_size: 2,\n            last_aggressor: None,\n        }')
+    source = replace_once(source, 's.n_raises += 1;\n                s.last_raise_size = raise_size;',
+        's.n_raises += 1;\n                s.last_aggressor = Some(p as u8);\n                s.last_raise_size = raise_size;')
+    source = replace_once(source, 's.n_raises += 1;\n                        s.last_raise_size = raise_size;',
+        's.n_raises += 1;\n                        s.last_aggressor = Some(p as u8);\n                        s.last_raise_size = raise_size;')
     start = '            PreflopNodeType::TerminalShowdown => {'
     end = '            PreflopNodeType::Decision(player) => {'
     if source.count(start) != 1 or source.count(end) != 1:
@@ -58,6 +68,7 @@ mod poker_app_regression_tests {
         assert_eq!(state.to_act, 3); // BTN after UTG, HJ, CO folds
         assert_eq!(state.actions(), vec![PreflopAction::Fold,PreflopAction::Raise(5)]);
         state = state.apply(PreflopAction::Raise(5));
+        assert_eq!(state.last_aggressor, Some(3));
         assert_eq!(state.actions(), vec![PreflopAction::Fold,PreflopAction::Call,
             PreflopAction::Raise(14),PreflopAction::AllIn]);
     }
