@@ -22,7 +22,8 @@ jobs:
           test "$(git -C solver rev-parse HEAD)" = 4ade6a9e15a841c41867afde1258b9d110cd6fb1
           python3 tools/patch_solver.py solver/src
       - name: Payoff and 20BB regression tests
-        run: cargo test --release --lib --manifest-path solver/Cargo.toml preflop::
+        run: |
+          cargo test --release --lib --manifest-path solver/Cargo.toml preflop::
       - name: Train joint preflop and postflop CFR pilot
         run: |
           mkdir -p experiment
