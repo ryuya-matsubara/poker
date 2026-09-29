@@ -1,0 +1,53 @@
+name: Diagnose preflop bet-size abstraction
+
+on:
+  push:
+    paths:
+      - .github/workflows/experiment-bet-size.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  compare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        open_size: [4, 6]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Pinned 20BB source
+        run: |
+          git clone https://github.com/exinori/DCFR-SOLVER.git solver
+          git -C solver checkout 4ade6a9e15a841c41867afde1258b9d110cd6fb1
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('solver/src/preflop.rs')
+          source = path.read_text()
+          old = 'let mut stacks = [200; NUM_PLAYERS]; // 100bb = 200 chips'
+          assert source.count(old) == 1
+          path.write_text(source.replace(old,'let mut stacks = [40; NUM_PLAYERS]; // 20bb = 40 half-BB chips'))
+          PY
+      - name: Train with raw-showdown terminal at 2BB or 3BB
+        run: |
+          mkdir -p experiment
+          cargo run --release --manifest-path solver/Cargo.toml -- preflop \
+            --iterations 30000000 --seed 42 \
+            --open-size ${{ matrix.open_size }} --sb-open-size 6 \
+            --bet3-size 14 --bet4-size 28 --oop-pot-tax 0.00 \
+            --output experiment/blueprint.bin \
+            --chart-output experiment/chart.json
+          python3 tools/analyze_preflop_charts.py experiment/chart.json \
+            --output experiment/frequencies.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: open-${{ matrix.open_size }}-half-bb
+          path: |
+            experiment/chart.json
+            experiment/frequencies.json
+            experiment/frequencies.csv
+          if-no-files-found: error
