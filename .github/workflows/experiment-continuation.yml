@@ -35,7 +35,7 @@ jobs:
           python3 tools/patch_solver.py solver/src
       - name: Rust and frontend regression tests
         run: |
-          cargo test --release --manifest-path solver/Cargo.toml preflop::
+          cargo test --release --lib --manifest-path solver/Cargo.toml preflop::
           node tools/test_preflop_frontend.cjs
       - name: Train the preflop strategy
         run: |
