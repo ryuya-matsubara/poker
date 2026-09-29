@@ -1,0 +1,47 @@
+name: Train 6-max 20BB preflop blueprint
+
+on:
+  push:
+    paths:
+      - .github/workflows/train-preflop.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  train:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+      - name: Check out pinned solver source
+        run: |
+          git clone https://github.com/exinori/DCFR-SOLVER.git solver
+          git -C solver checkout 4ade6a9e15a841c41867afde1258b9d110cd6fb1
+      - name: Set 20BB stacks
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('solver/src/preflop.rs')
+          source = path.read_text()
+          old = 'let mut stacks = [200; NUM_PLAYERS]; // 100bb = 200 chips'
+          assert source.count(old) == 1, 'The pinned solver source changed'
+          path.write_text(source.replace(old, 'let mut stacks = [40; NUM_PLAYERS]; // 20bb = 40 half-BB chips'))
+          PY
+      - name: Train and export opening charts
+        run: |
+          cargo run --release --manifest-path solver/Cargo.toml -- preflop \
+            --iterations 30000000 --seed 42 \
+            --open-size 5 --sb-open-size 6 --bet3-size 14 --bet4-size 28 \
+            --oop-pot-tax 0.20 \
+            --output solver/preflop_blueprint.bin \
+            --chart-output solver/preflop_charts.json
+      - name: Upload charts
+        uses: actions/upload-artifact@v4
+        with:
+          name: preflop-charts-20bb
+          path: solver/preflop_charts.json
+          if-no-files-found: error
