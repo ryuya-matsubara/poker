@@ -4,6 +4,10 @@ on:
   push:
     paths:
       - .github/workflows/experiment-continuation.yml
+      - tools/continuation.rs
+      - tools/patch_solver.py
+      - tools/validate_preflop.py
+      - tools/test_preflop_frontend.cjs
   workflow_dispatch:
 
 permissions:
