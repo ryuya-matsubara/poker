@@ -73,7 +73,10 @@ fn features(hole: Hand, board: Hand, street: usize) -> (u8,u8,u8) {
         },
         HandRank::OnePair => if let Some(r)=paired_rank {
             if private_pair && hi>bh {8}
-            else if r as u8 == bh {if hi.max(lo)>=10 {7}else{6}}
+            else if r as u8 == bh {
+                let kicker=cards.iter().map(|&c|rank(c)).filter(|&r2|r2!=r as u8).max().unwrap_or(0);
+                if kicker>=10 {7}else{6}
+            }
             else if private_pair {3} else {4}
         } else {2},
         HandRank::HighCard => if hi==12 {1}else{0},
@@ -202,6 +205,14 @@ mod tests {
         let flop=Hand::new().add(card(0,3)).add(card(4,3)).add(card(9,1));
         let river=flop.add(card(12,3)).add(card(1,0));
         assert_ne!(features(hole,flop,3),features(hole,river,5));
+    }
+    #[test]
+    fn top_pair_kicker_is_not_the_paired_card() {
+        let flop=Hand::new().add(card(12,0)).add(card(5,1)).add(card(2,2));
+        let weak=Hand::new().add(card(12,3)).add(card(0,3));
+        let strong=Hand::new().add(card(12,3)).add(card(11,3));
+        assert_eq!(features(weak,flop,3).0,6);
+        assert_eq!(features(strong,flop,3).0,7);
     }
     #[test]
     fn check_call_and_fold_preserve_zero_sum() {

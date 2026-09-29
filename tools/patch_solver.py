@@ -84,9 +84,16 @@ mod poker_app_regression_tests {
     file.write_text(source)
     (source_dir / 'continuation.rs').write_text(Path(__file__).with_name('continuation.rs').read_text())
     main = source_dir / 'main.rs'
-    main.write_text(replace_once(main.read_text(),
+    main_source = replace_once(main.read_text(),
         'min_allin_depth: 1,  // No open-shove; all-in allowed after first raise',
-        'min_allin_depth: 0,  // Allow 20BB open shove'))
+        'min_allin_depth: 0,  // Allow 20BB open shove')
+    main_source = replace_once(main_source,
+        '#[arg(long, default_value_t = 0.20)]',
+        '#[arg(long, default_value_t = 0.0)]')
+    main_source = replace_once(main_source,
+        '    println!("Training 6-max preflop MCCFR:");',
+        '    assert!(oop_pot_tax == 0.0, "Fixed OOP tax is disabled in the continuation model");\n    println!("Training 6-max preflop MCCFR:");')
+    main.write_text(main_source)
 
 
 if __name__ == '__main__':

@@ -17,7 +17,7 @@ jobs:
       matrix:
         include:
           - {id: seed42-30m, seed: 42, iterations: 30000000}
-          - {id: seed73-30m, seed: 73, iterations: 30000000}
+          - {id: seed73-60m, seed: 73, iterations: 60000000}
           - {id: seed42-60m, seed: 42, iterations: 60000000}
     steps:
       - uses: actions/checkout@v4
@@ -49,7 +49,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: joint-cfr-${{ matrix.id }}
+          name: joint-cfr-v2-${{ matrix.id }}
           path: |
             experiment/chart.json
             experiment/policy.json
