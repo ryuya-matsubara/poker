@@ -34,7 +34,7 @@ impl PreflopTrainer {
 '''
     p.write_text(s)
     legacy=Path(__file__).with_name('continuation_legacy.rs').read_text()
-    legacy=legacy.replace('pub(super) struct InfoKey(pub u64);','pub(super) type InfoKey = super::continuation::InfoKey;')
+    legacy=legacy.replace('#[derive(Clone, Copy, Hash, Eq, PartialEq)]\npub(super) struct InfoKey(pub u64);','pub(super) type InfoKey = super::continuation::InfoKey;')
     legacy=legacy.replace('InfoKey(value)','super::continuation::InfoKey(value as u128)')
     legacy=legacy.replace('fn features(','pub(super) fn visible_features(').replace('features(', 'visible_features(').replace('visible_visible_features','visible_features')
     legacy=legacy.replace('fn cfr(trainer: &mut PreflopTrainer,node: &Node,t: u8)', 'fn cfr(trainer: &mut PreflopTrainer,node: &Node,t: u8,learn: bool)')
