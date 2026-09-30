@@ -57,7 +57,7 @@ def compare(a, b, name):
 
 def check_policy(policy_path, charts):
     policy = json.loads(policy_path.read_text())
-    if policy.get('continuation_model') != 'joint-three-street-cfr-v3' or policy.get('model_sha256') != hashlib.sha256(Path(__file__).with_name('continuation.rs').read_bytes()).hexdigest():
+    if policy.get('continuation_model') != 'joint-three-street-cfr-v4' or policy.get('model_sha256') != hashlib.sha256(Path(__file__).with_name('continuation.rs').read_bytes()).hexdigest():
         raise ValueError('strategy was not generated with the current continuation model')
     if policy['max_stack_bb'] != 20 or policy['bet_sizes_half_bb'] != [[4,5],[14],[28]] or policy.get('min_allin_depth') != 0 or policy.get('oop_pot_tax') != 0:
         raise ValueError('stack or action abstraction mismatch')
@@ -75,6 +75,7 @@ def check_policy(policy_path, charts):
         for row in rows:
             if row is not None and (not all(0 <= p <= 1 for p in row) or abs(sum(row)-1) > .002):
                 raise ValueError(f'invalid policy probability: {pos}')
+    # Warnings detect model collapse; they never alter probabilities.
     # Q5o is bucket 91 + 10*9/2 + 3; compare chart and full-policy exports.
     btn = next(r for r in charts['BTN RFI']['hands'] if r['hand']=='Q5o')
     policy_btn = histories['000000'][139]
@@ -98,6 +99,14 @@ def main():
         if not low <= data[pos]['open'] <= high:
             summary['range_caveats'].append(f'{pos}: total outside loose external prior; exact 20BB/no-ante/no-rake benchmark needed')
     if args.policy: check_policy(args.policy,data)
+    btn={r['hand']:r['actions'] for r in data['BTN RFI']['hands']}
+    aq=btn['AQo']; small=sum(v for a,v in aq.items() if a.startswith('raise'))
+    summary['model_warnings']=[]
+    if aq.get('allin',0)>small: summary['model_warnings'].append('BTN AQo jam dominates small opens; inspect action EV and approximation')
+    if sum(v for a,v in btn['Q5o'].items() if a.startswith('raise'))>.90: summary['model_warnings'].append('BTN Q5o nearly pure raise')
+    if args.policy:
+        policy=json.loads(args.policy.read_text()); row=policy['histories'].get('010000',[None]*169)[17]
+        if row and row[-1]>.02: summary['model_warnings'].append('BTN 53s versus UTG 2BB has material shove probability; inspect conditional EV')
     if args.seed: summary['seed_stability']=compare(data,report(args.seed),'seed')
     if args.half: summary['iteration_stability']=compare(data,report(args.half),'iterations')
     if args.output: args.output.write_text(json.dumps(summary,indent=2))

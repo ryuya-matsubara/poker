@@ -1,0 +1,57 @@
+name: Train rich NLHE continuation and measure convergence v4
+on:
+  push:
+    branches: [solver-jam-final]
+    paths: [.github/workflows/train-jam-validation.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  train:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    strategy:
+      fail-fast: false
+      matrix:
+        seed: [42, 73, 101]
+    env:
+      POKER_MODEL: full
+      POKER_CHECKPOINT_PREFIX: experiment
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Construct pinned solver
+        run: |
+          git clone https://github.com/exinori/DCFR-SOLVER.git solver
+          git -C solver checkout 4ade6a9e15a841c41867afde1258b9d110cd6fb1
+          python3 tools/upgrade_solver.py solver/src
+      - name: Validate exact chip rules and sampled updates
+        run: |
+          cargo test --release --lib --manifest-path solver/Cargo.toml preflop::
+          python3 tools/test_preflop_export.py
+      - name: Train 30M, 60M and 120M along one RNG trajectory
+        run: |
+          mkdir experiment
+          /usr/bin/time -v cargo run --release --manifest-path solver/Cargo.toml -- preflop --iterations 120000000 --seed ${{ matrix.seed }} --open-size 5 --sb-open-size 6 --bet3-size 14 --bet4-size 28 --oop-pot-tax 0 --output experiment/final.bin --chart-output experiment/final-chart.json 2>experiment/training.log
+          for length in 30 60 120; do
+            python3 tools/export_preflop_policy.py experiment/${length}m-blueprint.bin experiment/${length}m-policy.json --max-histories 300 --min-visits 30
+            python3 tools/analyze_preflop_charts.py experiment/${length}m-chart.json --output experiment/${length}m-frequency.json
+          done
+          cp experiment/120m-chart.json preflop_charts.json
+          cp experiment/120m-policy.json preflop_policy.json
+          python3 tools/validate_preflop.py preflop_charts.json --policy preflop_policy.json --output experiment/validation.json
+          node tools/test_preflop_frontend.cjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: jam-blueprints-seed${{ matrix.seed }}
+          path: experiment/*blueprint.bin
+          compression-level: 9
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: jam-final-seed${{ matrix.seed }}
+          path: |
+            experiment/*.json
+            experiment/*.csv
+            experiment/training.log

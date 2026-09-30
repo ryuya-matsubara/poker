@@ -53,7 +53,7 @@ def main():
     parser.add_argument('blueprint', type=Path)
     parser.add_argument('output', type=Path)
     parser.add_argument('--max-histories', type=int, default=300)
-    parser.add_argument('--min-visits', type=int, default=30)
+    parser.add_argument('--min-visits', type=int, default=30, help='Legacy threshold for deep histories only; weighted mass is not a visit count')
     args = parser.parse_args()
 
     first = entries(args.blueprint)
@@ -66,8 +66,11 @@ def main():
     for history, _, cum in first:
         history_mass[history] += sum(cum) / scale
     selected = set(sorted(history_mass, key=history_mass.get, reverse=True)[:args.max_histories])
-    # Always retain the no-raise opening histories, even if their frequency is low.
-    selected.update(['', '00', '0000', '000000', '00000000'])
+    # Importance-weighted average mass is not visitation frequency. Retain every
+    # sampled shallow decision, including responses to opens; rank only deeper
+    # histories to bound browser payload size. No hand-specific selection.
+    shallow = {h for h in history_mass if len(h) <= 8}
+    selected.update(shallow)
 
     second = entries(args.blueprint)
     if next(second) != config:
@@ -80,17 +83,17 @@ def main():
         total = sum(cum)
         if not all(math.isfinite(x) and x >= 0 for x in cum):
             raise ValueError('Non-finite or negative cumulative strategy')
-        if total / scale < args.min_visits or total <= 0:
+        if total <= 0 or (history not in shallow and total / scale < args.min_visits):
             continue
         output[history][bucket] = [round(x / total, 4) for x in cum]
         kept += 1
     output = {history: hands for history, hands in output.items() if any(hands)}
     result = {'version': 3, 'iterations': iterations, 'source_commit': '4ade6a9e15a841c41867afde1258b9d110cd6fb1',
               'max_stack_bb': 20, 'bet_sizes_half_bb': sizes, 'sb_open_half_bb': sb_open,
-              'min_allin_depth': min_allin, 'continuation_model': 'joint-three-street-cfr-v3',
-              'oop_pot_tax': 0,
+              'min_allin_depth': min_allin, 'continuation_model': 'joint-three-street-cfr-v4',
+              'oop_pot_tax': 0, 'export_shallow_depth': 4, 'deep_history_mass_threshold': args.min_visits,
               'model_sha256': hashlib.sha256(Path(__file__).with_name('continuation.rs').read_bytes()).hexdigest(),
-              'histories': output}
+              'algorithm': 'signed-external-sampling-MCCFR', 'average_weighting': 'linear-own-reach-divided-by-opponent-sample-reach', 'sampling_exploration': 0.05, 'postflop_raise_limit': 1, 'ante_bb': 0, 'rake': 0, 'histories': output}
     args.output.write_text(json.dumps(result, separators=(',', ':'), ensure_ascii=False))
     print(f'{kept} hands in {len(output)} action histories, {count} raw infosets; output {args.output.stat().st_size} bytes')
 

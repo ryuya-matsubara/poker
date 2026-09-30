@@ -7,9 +7,10 @@ def upgrade(directory):
     patch(directory)
     p=directory/'preflop.rs';s=p.read_text()
     s=s.replace('#[path = "continuation.rs"] mod continuation;','#[path = "continuation.rs"] mod continuation;\n#[path = "continuation_legacy.rs"] mod continuation_legacy;')
-    s=replace_once(s,'    postflop: HashMap<continuation::InfoKey, RegretEntry>,','    postflop: HashMap<continuation::InfoKey, RegretEntry>,\n    shared_runout: [Card;5],')
-    s=replace_once(s,'            postflop: HashMap::new(),','            postflop: HashMap::new(),\n            shared_runout: [0;5],')
-    s=s.replace('            self.cfr_external(&state, traverser, &mut history);','''            let samples=if std::env::var("POKER_MODEL").ok().as_deref()==Some("chance") {4}else{1};
+    s=replace_once(s,'    postflop: HashMap<continuation::InfoKey, RegretEntry>,','    postflop: HashMap<continuation::InfoKey, RegretEntry>,\n    shared_runout: [Card;5],\n    post_strategy: HashMap<continuation::InfoKey,Vec<f32>>,\n    pre_strategy: HashMap<PreflopInfoKey,Vec<f32>>,')
+    s=replace_once(s,'            postflop: HashMap::new(),','            postflop: HashMap::new(),\n            shared_runout: [0;5],\n            post_strategy: HashMap::new(),\n            pre_strategy: HashMap::new(),')
+    s=s.replace('            self.cfr_external(&state, traverser, &mut history);','''            self.post_strategy.clear();self.pre_strategy.clear();
+            let samples=if std::env::var("POKER_MODEL").ok().as_deref()==Some("chance") {4}else{1};
             for _ in 0..samples {
                 let mut dead=state.holes.iter().fold(Hand::new(),|d,&h|d.union(h));
                 for i in 0..5 {let c=self.draw_excluding(dead);self.shared_runout[i]=c;dead=dead.add(c);}
@@ -67,7 +68,16 @@ impl PreflopTrainer {
     m=directory/'main.rs';v=m.read_text()
     v=v.replace('    trainer.train(iterations);','''    if std::env::var("POKER_MODEL").ok().as_deref()==Some("nojam") {trainer.blueprint.config.min_allin_depth=1;}
     if std::env::var("POKER_MODEL").ok().as_deref()==Some("sizes") {trainer.blueprint.config.raise_sizes=vec![vec![4,5],vec![10,14],vec![]];}
-    trainer.train(iterations);
+    if let Ok(prefix)=std::env::var("POKER_CHECKPOINT_PREFIX") {
+        for end in [30000000u64,60000000,120000000].into_iter().filter(|&x|x<=iterations) {
+            trainer.train(end-trainer.blueprint.iterations);
+            let stem=format!("{}/{}m",prefix,end/1000000);
+            std::fs::write(format!("{}-chart.json",stem),serde_json::to_string_pretty(&trainer.blueprint.extract_charts()).unwrap()).unwrap();
+            let mut f=std::fs::File::create(format!("{}-blueprint.bin",stem)).unwrap();trainer.blueprint.save(&mut f).unwrap();
+            trainer.diagnose_actions(&format!("{}-ev.json",stem),10000);
+        }
+        if trainer.blueprint.iterations<iterations {trainer.train(iterations-trainer.blueprint.iterations);}
+    } else {trainer.train(iterations);}
     if let Ok(path)=std::env::var("POKER_EV_OUTPUT") {
         let samples=std::env::var("POKER_EV_SAMPLES").ok().and_then(|n|n.parse().ok()).unwrap_or(10000);
         trainer.diagnose_actions(&path,samples);
