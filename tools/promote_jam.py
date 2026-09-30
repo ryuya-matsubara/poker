@@ -52,7 +52,7 @@ def main():
     if args.control:
         quality['unclip_only']=ev_summary(args.control/'ev.json');shutil.copytree(args.control,out/'unclip-only',dirs_exist_ok=True)
     shutil.copy(final/'120m-chart.json','preflop_charts.json');shutil.copy(final/'120m-policy.json','preflop_policy.json')
-    release_policy=json.loads(Path('preflop_policy.json').read_text());release_policy['training_source_commit']=args.training_source
+    release_policy=json.loads(Path('preflop_policy.json').read_text());release_policy['training_source_commit']=args.training_source;release_policy['training_seed']=42;release_policy['sb_bb']=.5;release_policy['bb_bb']=1
     Path('preflop_policy.json').write_text(json.dumps(release_policy,separators=(',',':')))
     # Complete per-infoset metrics are stored separately to keep the summary usable.
     deltas=quality.pop('policy_deltas');write(out/'policy_deltas.json',deltas)
@@ -69,13 +69,19 @@ def main():
     latest=quality['action_ev']['seed42-120m']
     rows=[]
     for s in latest:
-        for a in s['actions']:rows.append([s['spot'],s['hand'],a['action'],f"{100*a['probability']:.2f}%",f"{a['mean_bb']:.4f}",f"{a['se_bb']:.4f}",a['samples'],f"{a['estimated_regret_bb']:.4f}"])
-    lines+=['### 各actionの推定EV（BB）\n',table(['spot','hand','action (half-BB chips)','frequency','mean EV','SE','n','estimated regret'],rows),'\n95%区間は各平均 ± 1.96×SE。全て凍結平均戦略に対する条件付き評価であり、累積regretログそのものではない。同じdeal/runout/RNGをaction間で共有し、相手のprior public actionでrangeを条件付けた。paired jam差・SEはEV JSON参照。標準誤差は固定された学習戦略内のMonte Carlo誤差のみで、モデル誤差やseed差を含まない。\n']
+        for a in s['actions']:rows.append([s['spot'],s['hand'],a['action'],f"{100*a['probability']:.2f}%",f"{a['mean_bb']:.4f}",f"{a['se_bb']:.4f}",a['samples'],f"{a['estimated_regret_bb']:.4f}",f"{a.get('stored_cumulative_regret_half_bb',0):.1f}",f"{100*a.get('current_regret_matching_probability',0):.2f}%"])
+    lines+=['### 各actionの推定EV（BB）\n',table(['spot','hand','action (half-BB chips)','frequency','mean EV','SE','n','estimated advantage','stored cumulative regret (halfBB)','current π'],rows),'\n95%区間は各平均 ± 1.96×SE。全て凍結平均戦略に対する条件付き評価であり、累積regretログそのものではない。同じdeal/runout/RNGをaction間で共有し、相手のprior public actionでrangeを条件付けた。paired jam差・SEはEV JSON参照。標準誤差は固定された学習戦略内のMonte Carlo誤差のみで、モデル誤差やseed差を含まない。\n']
     rows=[]
     for s in latest:
         key=s['spot']+' '+s['hand'];before=old.get(key,{})
         for a in s['actions']:rows.append([s['spot'],s['hand'],a['action'],f"{100*before.get(a['action'],0):.2f}%",f"{100*a['probability']:.2f}%"])
     lines+=['### 旧mainとの頻度比較\n',table(['spot','hand','action','old main','new seed42 120M'],rows)]
+    if 'unclip_only' in quality:
+        control_rows=[]
+        for spot in quality['unclip_only']:
+            if spot['hand'] in ['AQo','53s']:
+                for a in spot['actions']:control_rows.append([spot['spot'],spot['hand'],a['action'],f"{100*a['probability']:.3f}%",f"{a['mean_bb']:.4f}",f"{a['se_bb']:.4f}"])
+        lines+=['### Clippingだけを外した追加control（同一chance stream）\n',table(['spot','hand','action','frequency','EV BB','SE BB'],control_rows)]
     rows=[]
     for mode,v in quality['ablation'].items():
         aq=next(s for s in v['ev'] if s['spot']=='BTN RFI' and s['hand']=='AQo');weak=next(s for s in v['ev'] if s['hand']=='53s');getjam=lambda s:next((a['probability'] for a in s['actions'] if a['action']=='allin'),0)
