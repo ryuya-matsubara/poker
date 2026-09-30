@@ -50,6 +50,17 @@ mod reopening_regression {
   assert_eq!(s.to_act,0);assert_eq!(s.actions(),vec![PreflopAction::Fold,PreflopAction::Call]);
  }
 }
+#[cfg(test)]
+mod chance_stream_regression {
+ use super::*;
+ #[test] fn next_deal_rng_is_independent_of_action_tree() {
+  let cfg=PreflopBetConfig{raise_sizes:vec![vec![4,5],vec![14],vec![28]],sb_limp:true,sb_open_size:Some(6),min_allin_depth:0};
+  let mut other=cfg.clone();other.raise_sizes=vec![vec![4,5],vec![10,14],vec![]];
+  let mut a=PreflopTrainer::new(cfg,2026);let mut b=PreflopTrainer::new(other,2026);
+  a.train(100);b.train(100);
+  assert_eq!(a.rng.gen::<u64>(),b.rng.gen::<u64>());
+ }
+}
 impl PreflopTrainer {
     pub fn diagnose_actions(&mut self,path:&str,samples:usize) {continuation::diagnose(self,path,samples);}
 }
