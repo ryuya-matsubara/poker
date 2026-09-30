@@ -2,6 +2,7 @@
 import json,tempfile,unittest
 from pathlib import Path
 from analyze_jam import ev_summary,policy_delta
+from check_convergence import warnings
 from validate_preflop import check_chart
 from analyze_preflop_charts import report
 
@@ -27,6 +28,16 @@ class AnalysisTests(unittest.TestCase):
             d=policy_delta(a,b)
             self.assertEqual(d['infosets'],2)
             self.assertAlmostEqual(d['mean_l1'],.2)
+    def test_pure_strategy_profitable_deviation_is_detected(self):
+        # A pure action has zero advantage against itself, so checking only
+        # negative played-action advantages misses a profitable alternative.
+        ev=[{'spot':'synthetic','hand':'synthetic','warnings':[],'actions':[
+            {'action':'fold','probability':0.,'estimated_regret_bb':.3,'regret_se_bb':.01},
+            {'action':'allin','probability':1.,'estimated_regret_bb':0.,'regret_se_bb':0.}]}]
+        self.assertEqual(len(warnings(ev)),1)
+        self.assertEqual(warnings(ev)[0]['action'],'fold')
+        ev[0]['actions'][0]['regret_se_bb']=.2
+        self.assertEqual(warnings(ev),[])
     def test_premium_collapse_is_detected(self):
         data=report('analysis/old_preflop_charts.json') if Path('analysis/old_preflop_charts.json').exists() else report('preflop_charts.json')
         aa=next(r for r in data['BTN RFI']['hands'] if r['hand']=='AA')
