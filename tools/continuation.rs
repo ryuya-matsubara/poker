@@ -9,8 +9,17 @@ use std::collections::hash_map::DefaultHasher;
 const ORDER:[usize;6]=[4,5,0,1,2,3];
 #[derive(Clone,Copy,Hash,Eq,PartialEq)]
 pub(super) struct InfoKey(pub u128);
+pub(super) struct PostEntry {pub regrets:[f32;4],pub cum_strategy:[f32;4],n:usize}
+impl PostEntry {
+ pub(super) fn new(n:usize)->Self {assert!(n<=4);Self{regrets:[0.;4],cum_strategy:[0.;4],n}}
+ pub(super) fn current_strategy(&self)->Vec<f32> {let total:f32=self.regrets[..self.n].iter().map(|x|x.max(0.)).sum();if total>0. {self.regrets[..self.n].iter().map(|x|x.max(0.)/total).collect()}else{vec![1./self.n as f32;self.n]}}
+ pub(super) fn average_strategy(&self)->Vec<f32> {let total:f32=self.cum_strategy[..self.n].iter().sum();if total>0. {self.cum_strategy[..self.n].iter().map(|x|x/total).collect()}else{vec![1./self.n as f32;self.n]}}
+}
+trait Entry {fn add(&mut self,a:usize,regret:f32,average:f32);}
+impl Entry for RegretEntry {fn add(&mut self,a:usize,r:f32,s:f32){self.regrets[a]+=r;self.cum_strategy[a]+=s;}}
+impl Entry for PostEntry {fn add(&mut self,a:usize,r:f32,s:f32){self.regrets[a]+=r;self.cum_strategy[a]+=s;}}
 #[derive(Clone)]
-struct Node {state:PreflopState,board:Hand,runout:[Card;5],street:usize,paid:[i32;6],pending:u8,acted:u8,bettor:Option<usize>,target:i32,last_raise:i32,raises:u8,history:u64,prehistory:u64}
+struct Node {state:PreflopState,board:Hand,runout:[Card;5],street:usize,paid:[i32;6],pending:u8,acted:u8,bettor:Option<usize>,target:i32,last_raise:i32,raises:u8,history:u64,prehistory:u64,previous:u16}
 #[derive(Clone,Copy)]
 struct Reach {own:f64,q:f64,cf:f64}
 impl Reach {fn root()->Self {Self{own:1.,q:1.,cf:1.}}}
@@ -63,32 +72,40 @@ fn key(n:&Node,p:usize,a:&[i32])->InfoKey {
  // Public board ranks and suit topology are bucketed; exact money/history are retained.
  let private=(canonical_hand(hole[0],hole[1]).index(),legacy,over,hi,lo,flush,straight,nut,near);
  let public=(br.last().unwrap()/3,br[br.len()/2]/3,br[0]/3,suits.iter().max().copied().unwrap(),br.windows(2).any(|w|w[0]==w[1]));
- let money=(pot,n.state.stacks,n.paid,call,effective,a);
- InfoKey((hash(&(private,public)) as u128)<<64|hash(&(p,n.street,actionable(&n.state),n.state.folded,n.state.last_aggressor,n.prehistory,n.history,money)) as u128)
+ let odds=(16*call/(pot+call).max(1)).min(15);
+ let bet_fraction=(8*n.target/(pot-n.paid.iter().sum::<i32>()).max(1)).min(31);
+ let stacks=n.state.stacks.map(|x|(x+1)/4); // 2BB resolution; payoffs use exact chips.
+ let money=((pot+2)/4,stacks,(effective+1)/4,odds,bet_fraction,a.len());
+ InfoKey((hash(&(private,public)) as u128)<<64|hash(&(p,n.street,actionable(&n.state),n.state.folded,n.state.last_aggressor,n.prehistory,n.history,n.previous,money)) as u128)
 }
 fn terminal(n:&Node,t:u8)->f32 {if n.state.active_count()==1 {let w=(0..6).find(|&p|!n.state.folded[p]).unwrap();n.state.payoff_fold(w as u8)[t as usize]}else{n.state.payoff_showdown(n.runout.iter().fold(Hand::new(),|h,&c|h.add(c)))[t as usize]}}
-fn update(e:&mut RegretEntry,s:&[f32],v:&[f32],value:f32,r:Reach,weight:f64) {
- for a in 0..s.len(){e.regrets[a]+=(r.cf*(v[a]-value) as f64) as f32;e.cum_strategy[a]+=(weight*r.own/r.q*s[a] as f64) as f32;}
+fn update<E:Entry>(e:&mut E,s:&[f32],v:&[f32],value:f32,r:Reach,weight:f64) {
+ for a in 0..s.len(){e.add(a,(r.cf*(v[a]-value) as f64) as f32,(weight*r.own/r.q*s[a] as f64) as f32);}
 }
 fn cfr(t:&mut PreflopTrainer,n:&Node,tr:u8,r:Reach,learn:bool)->f32 {
  if n.state.folded[tr as usize]{return -(n.state.bets[tr as usize] as f32);}
  if n.state.active_count()==1{return terminal(n,tr);}
  if n.pending==0 || actionable(&n.state).count_ones()<2&&n.target==0 {
   if n.street==5||actionable(&n.state).count_ones()<2{return terminal(n,tr);}
-  let mut c=n.clone();c.street+=1;c.board=c.board.add(c.runout[c.street-1]);c.paid=[0;6];c.target=0;c.last_raise=2;c.raises=0;c.acted=0;c.bettor=None;c.pending=actionable(&c.state);return cfr(t,&c,tr,r,learn);
+  let mut c=n.clone();c.street+=1;c.board=c.board.add(c.runout[c.street-1]);c.paid=[0;6];c.target=0;c.last_raise=2;c.raises=0;c.acted=0;c.previous=((n.previous<<5)|((n.bettor.unwrap_or(6) as u16)<<2)|n.raises.min(3) as u16)&1023;c.history=0;c.bettor=None;c.pending=actionable(&c.state);return cfr(t,&c,tr,r,learn);
  }
  let p=actor(n);let a=actions(n,p);let k=key(n,p,&a);
  let s=t.postflop.get(&k).map(|e|if learn{e.current_strategy()}else{e.average_strategy()}).unwrap_or_else(||vec![1./a.len() as f32;a.len()]);
  if p==tr as usize&&learn {
   let shared=t.rng.clone();let mut v=Vec::new();for (i,&x) in a.iter().enumerate(){t.rng=shared.clone();v.push(cfr(t,&apply(n,p,x,i),tr,Reach{own:r.own*s[i] as f64,..r},true));}
-  let value=v.iter().zip(&s).map(|(x,p)|x*p).sum();let w=t.blueprint.iterations as f64+1.;let e=t.postflop.entry(k).or_insert_with(||RegretEntry::new(a.len()));update(e,&s,&v,value,r,w);value
+  let value=v.iter().zip(&s).map(|(x,p)|x*p).sum();let w=t.blueprint.iterations as f64+1.;let e=t.postflop.entry(k).or_insert_with(||PostEntry::new(a.len()));update(e,&s,&v,value,r,w);value
  } else {
   let epsilon=if learn{0.05}else{0.};let q:Vec<_>=s.iter().map(|&x|(1.-epsilon)*x+epsilon/a.len() as f32).collect();let i=sample(&q,&mut t.rng);
   let ratio=s[i] as f64/q[i] as f64;let next=if learn{Reach{q:r.q*q[i] as f64,cf:r.cf*ratio,..r}}else{r};cfr(t,&apply(n,p,a[i],i),tr,next,learn)*ratio as f32
  }
 }
 fn sample<R:Rng>(s:&[f32],rng:&mut R)->usize {let u=rng.gen::<f32>();let mut c=0.;s.iter().position(|&p|{c+=p;u<c}).unwrap_or(s.len()-1)}
-fn node(s:&PreflopState,runout:[Card;5],history:&[u8])->Node {Node{state:s.clone(),board:runout[..3].iter().fold(Hand::new(),|h,&c|h.add(c)),runout,street:3,paid:[0;6],pending:actionable(s),acted:0,bettor:None,target:0,last_raise:2,raises:0,history:0,prehistory:hash(&history)}}
+fn public_preflop(s:&PreflopState,h:&[u8])->u64 {
+ let mut replay=PreflopState::new_6max(s.config.clone());let mut raises=Vec::new();
+ for &idx in h {let a=replay.actions();if idx as usize>=a.len(){break;}let x=a[idx as usize];if matches!(x,super::PreflopAction::Raise(_)|super::PreflopAction::AllIn){raises.push((replay.to_act,x));}replay=replay.apply(x);}
+ hash(&raises)
+}
+fn node(s:&PreflopState,runout:[Card;5],history:&[u8])->Node {Node{state:s.clone(),board:runout[..3].iter().fold(Hand::new(),|h,&c|h.add(c)),runout,street:3,paid:[0;6],pending:actionable(s),acted:0,bettor:None,target:0,last_raise:2,raises:0,history:0,prehistory:public_preflop(s,history),previous:0}}
 fn leaf(t:&mut PreflopTrainer,s:&PreflopState,tr:u8,h:&[u8],r:Reach,learn:bool)->f32 {
  if mode()=="raw"{return s.payoff_showdown(t.shared_runout.iter().fold(Hand::new(),|b,&c|b.add(c)))[tr as usize];}
  if mode()=="legacy"||mode()=="nojam" {return super::continuation_legacy::evaluate_policy(t,s,tr);}

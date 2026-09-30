@@ -28,12 +28,25 @@ def upgrade(directory):
     s=s.replace('if my_stack > 0 && self.n_raises','if self.raise_allowed[p] && my_stack > 0 && self.n_raises')
     s=s.replace('if chips_needed <= 0 {','if chips_needed <= 0 || total_bet-max_bet < self.last_raise_size {')
     s+='''
+#[cfg(test)]
+mod reopening_regression {
+ use super::*;
+ #[test] fn short_allin_does_not_reopen_for_prior_actor() {
+  let cfg=PreflopBetConfig{raise_sizes:vec![vec![4,5],vec![14],vec![28]],sb_limp:true,sb_open_size:Some(6),min_allin_depth:0};
+  let mut s=PreflopState::new_6max(cfg);s=s.apply(PreflopAction::Raise(4));
+  s.stacks[1]=5;s=s.apply(PreflopAction::AllIn);
+  for _ in 0..4 {s=s.apply(PreflopAction::Fold);}
+  assert_eq!(s.to_act,0);assert_eq!(s.actions(),vec![PreflopAction::Fold,PreflopAction::Call]);
+ }
+}
 impl PreflopTrainer {
     pub fn diagnose_actions(&mut self,path:&str,samples:usize) {continuation::diagnose(self,path,samples);}
 }
 '''
+    s=s.replace('postflop: HashMap<continuation::InfoKey, RegretEntry>', 'postflop: HashMap<continuation::InfoKey, continuation::PostEntry>')
     p.write_text(s)
     legacy=Path(__file__).with_name('continuation_legacy.rs').read_text()
+    legacy=legacy.replace('use super::{PreflopState, PreflopTrainer, RegretEntry, NUM_PLAYERS};','use super::{PreflopState, PreflopTrainer, NUM_PLAYERS};\nuse super::continuation::PostEntry as RegretEntry;')
     legacy=legacy.replace('#[derive(Clone, Copy, Hash, Eq, PartialEq)]\npub(super) struct InfoKey(pub u64);','pub(super) type InfoKey = super::continuation::InfoKey;')
     legacy=legacy.replace('InfoKey(value)','super::continuation::InfoKey(value as u128)')
     legacy=legacy.replace('fn features(','pub(super) fn visible_features(').replace('features(', 'visible_features(').replace('visible_visible_features','visible_features')

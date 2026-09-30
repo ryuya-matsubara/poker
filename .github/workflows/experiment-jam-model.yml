@@ -31,14 +31,14 @@ jobs:
         env:
           POKER_MODEL: ${{ matrix.model }}
           POKER_EV_OUTPUT: experiment/ev.json
-          POKER_EV_SAMPLES: 1000
+          POKER_EV_SAMPLES: 10000
         run: |
           mkdir experiment
-          /usr/bin/time -v cargo run --release --manifest-path solver/Cargo.toml -- preflop --iterations 1000000 --seed 42 --open-size 5 --sb-open-size 6 --bet3-size 14 --bet4-size 28 --oop-pot-tax 0 --output experiment/blueprint.bin --chart-output experiment/chart.json 2>experiment/training.log
+          /usr/bin/time -v cargo run --release --manifest-path solver/Cargo.toml -- preflop --iterations 30000000 --seed 42 --open-size 5 --sb-open-size 6 --bet3-size 14 --bet4-size 28 --oop-pot-tax 0 --output experiment/blueprint.bin --chart-output experiment/chart.json 2>experiment/training.log
           python3 tools/analyze_preflop_charts.py experiment/chart.json --output experiment/frequency.json
           cat experiment/ev.json
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: jam-${{ matrix.model }}-seed42-1m
+          name: jam-${{ matrix.model }}-seed42-30m
           path: experiment/
