@@ -1,0 +1,63 @@
+name: Ablate continuation with identical action abstraction
+on:
+  push:
+    paths:
+      - .github/workflows/experiment-terminal-ablation.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  train:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Pin and patch solver
+        run: |
+          git clone https://github.com/exinori/DCFR-SOLVER.git solver
+          git -C solver checkout 4ade6a9e15a841c41867afde1258b9d110cd6fb1
+          test "$(git -C solver rev-parse HEAD)" = 4ade6a9e15a841c41867afde1258b9d110cd6fb1
+          python3 tools/patch_solver.py solver/src
+          python3 - <<'PYCODE'
+          from pathlib import Path
+          import subprocess
+          original=subprocess.run(['git','-C','solver','show','4ade6a9e15a841c41867afde1258b9d110cd6fb1:src/preflop.rs'],check=True,capture_output=True,text=True).stdout
+          path=Path('solver/src/preflop.rs')
+          source=path.read_text()
+          start='            PreflopNodeType::TerminalShowdown => {'
+          end='            PreflopNodeType::Decision(player) => {'
+          original_terminal=original.split(start,1)[1].split(end,1)[0]
+          before,rest=source.split(start,1)
+          _,after=rest.split(end,1)
+          path.write_text(before+start+original_terminal+end+after)
+          PYCODE
+      - name: Payoff and 20BB regression tests
+        run: |
+          cargo test --release --lib --manifest-path solver/Cargo.toml preflop::
+      - name: Train joint preflop and postflop CFR pilot
+        run: |
+          mkdir -p experiment
+          /usr/bin/time -v cargo run --release --manifest-path solver/Cargo.toml -- preflop \
+            --iterations 30000000 --seed 42 \
+            --open-size 5 --sb-open-size 6 --bet3-size 14 --bet4-size 28 \
+            --oop-pot-tax 0.00 --output experiment/blueprint.bin \
+            --chart-output experiment/chart.json 2>experiment/training.log
+          python3 tools/analyze_preflop_charts.py experiment/chart.json --output experiment/frequencies.json
+          python3 tools/export_preflop_policy.py experiment/blueprint.bin experiment/policy.json --max-histories 300 --min-visits 30
+          cp experiment/chart.json preflop_charts.json
+          cp experiment/policy.json preflop_policy.json
+          node tools/test_preflop_frontend.cjs
+          python3 tools/test_preflop_export.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: raw-terminal-mixed-open-seed42-30m
+          path: |
+            experiment/chart.json
+            experiment/policy.json
+            experiment/frequencies.json
+            experiment/frequencies.csv
+            experiment/training.log
+            experiment/validation.json
+          if-no-files-found: warn
