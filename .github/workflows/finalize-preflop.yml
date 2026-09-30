@@ -1,0 +1,102 @@
+name: Validate and publish final preflop strategy
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/finalize-preflop.yml
+  workflow_dispatch:
+permissions:
+  contents: write
+  actions: read
+  pages: write
+  id-token: write
+concurrency:
+  group: preflop-release
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - name: Wait for final training and regression tests
+        uses: actions/github-script@v7
+        with:
+          script: |
+            for (let attempt=0; attempt<270; attempt++) {
+              const result=await github.rest.actions.getWorkflowRun({...context.repo,run_id:36649555305});
+              if (result.data.status==='completed') {
+                if (result.data.conclusion!=='success') throw new Error('Final training/test workflow did not pass');
+                return;
+              }
+              await new Promise(resolve=>setTimeout(resolve,10000));
+            }
+            throw new Error('Final training is still running');
+      - uses: actions/download-artifact@v4
+        with:
+          run-id: 36649555305
+          github-token: ${{ github.token }}
+          pattern: joint-cfr-final-*
+          path: runs
+      - uses: actions/download-artifact@v4
+        with:
+          run-id: 36648767796
+          github-token: ${{ github.token }}
+          name: raw-terminal-mixed-open-seed42-30m
+          path: runs/raw
+      - uses: actions/download-artifact@v4
+        with:
+          run-id: 36647806881
+          github-token: ${{ github.token }}
+          name: joint-cfr-v2-seed42-30m
+          path: runs/fixed-open
+      - name: Generate and verify exact strategy
+        run: |
+          python3 -m py_compile tools/*.py
+          python3 tools/promote_preflop.py
+          python3 tools/test_preflop_export.py
+          node tools/test_preflop_frontend.cjs
+          python3 tools/validate_preflop.py preflop_charts.json --policy preflop_policy.json --seed analysis/runs/seed73-60m.json --half analysis/runs/seed42-30m.json
+      - name: Preserve verified data and report in repository
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html README.md preflop_charts.json preflop_policy.json analysis .github/workflows/train-preflop.yml .github/workflows/pages.yml
+          if ! git diff --cached --quiet; then
+            git commit -m 'Publish validated 20BB joint-CFR strategy and full range report'
+            git push origin HEAD:main
+          fi
+      - name: Wait for earlier Pages builds
+        uses: actions/github-script@v7
+        with:
+          script: |
+            for (let attempt=0; attempt<60; attempt++) {
+              const result=await github.rest.actions.listWorkflowRunsForRepo({...context.repo,per_page:30});
+              const active=result.data.workflow_runs.filter(r=>r.id!==context.runId && /pages/i.test(r.name||'') && ['queued','in_progress','waiting','pending'].includes(r.status));
+              if (!active.length) return;
+              await new Promise(resolve=>setTimeout(resolve,5000));
+            }
+            throw new Error('Earlier Pages deployment did not finish in time');
+      - uses: actions/configure-pages@v5
+      - name: Stage only web application files
+        run: |
+          mkdir public
+          cp index.html preflop_charts.json preflop_policy.json public/
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: public
+      - uses: actions/deploy-pages@v4
+        id: deployment
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: final-preflop-quality
+          path: |
+            analysis/quality.json
+            analysis/preflop_model_fix.md
+            analysis/final_frequency_169.csv

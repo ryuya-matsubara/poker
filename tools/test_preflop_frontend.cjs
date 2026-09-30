@@ -68,5 +68,10 @@ vm.runInNewContext(script, context);
   assert.equal(game.players[0].stack,20000-rootRaises[0]*500);
   doAction(game.players[1],'fold');
   assert.equal(game.solverHistory,'0000000100','SB fold retains the BTN raise history');
+  game.acted.add(0);
+  game.currentBet=18000;game.solverDepth=3;game.lastRaise=7000;
+  game.players[0].streetBet=14000;game.players[0].stack=5000;
+  assert.deepEqual(Array.from(solverOptions(game.players[0]), a=>a.kind),['fold','call'],
+    'short all-in must not reopen a raise for a player who already acted');
   console.log('frontend preflop integration OK');
 })().catch(error => {console.error(error);process.exitCode=1;});
