@@ -24,7 +24,7 @@
 
 相手actionを `q(a)=0.95π(a)+0.05/|A|` でsampleする。traverser actionは全列挙。sampled subtree値にはπ/qを掛ける。到達までのopponent/chance sampling補正をregretに適用し、own reachはregretへ掛けない。平均戦略には `linear_iteration_weight × own_reach / sampled_opponent_reach × π(a)` を加える。chanceは一様な重複なし6人hole dealとrunoutをsampleし、既知のchance sampling項が期待値で相殺する。board、hole card、opponent private stateを戦略判断へ渡さない。
 
-累積regretはsignedで保存し、regret matchingでは正の部分だけを正規化する。全actionが非正ならuniform。sampling correctionのclip、固定bonus、hand-specific penaltyはない。各iterationでpolicyを凍結してから1人のtraverserを巡回更新し、同じinfosetの再訪問で更新途中のpolicyを使わない。checkpoint EV診断は学習RNG/runoutを復元して学習軌跡を変えない。
+累積regretはsignedで保存し、regret matchingでは正の部分だけを正規化する。全actionが非正ならuniform。sampling correctionのclip、固定bonus、hand-specific penaltyはない。branch間のcommon random numbers用にdecision RNGをcloneしても、次deal/runoutのstreamを巻き戻さないよう、deal・board・decision RNGをepisode seedで分離する。1board/4board、異なる戦略でもdeal streamを同一に保つ。各iterationでpolicyを凍結してから1人のtraverserを巡回更新し、同じinfosetの再訪問で更新途中のpolicyを使わない。checkpoint EV診断は学習RNG/runoutを復元して学習軌跡を変えない。
 
 **多人数とimperfect recall**: 6人ゲームは、2人zero-sumのCFRと同じNash収束保証を持たない。さらに履歴とmoneyのabstractionはimperfect recallである。iteration/seed stabilityは抽象モデル内の安定性であり、NLHE全体のGTO誤差の証明ではない。
 

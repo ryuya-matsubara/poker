@@ -11,14 +11,24 @@ def upgrade(directory):
     s=replace_once(s,'            postflop: HashMap::new(),','            postflop: HashMap::new(),\n            shared_runout: [0;5],\n            post_strategy: HashMap::new(),\n            pre_strategy: HashMap::new(),')
     s=s.replace('            self.cfr_external(&state, traverser, &mut history);','''            self.post_strategy.clear();self.pre_strategy.clear();
             let samples=if std::env::var("POKER_MODEL").ok().as_deref()==Some("chance") {4}else{1};
+            // Fork decision RNG from chance RNG. CRN branch cloning must never
+            // rewind the stream that generates the NEXT deal or board.
+            let continuation_seed=self.rng.gen::<u64>();
+            let next_deal_rng=self.rng.clone();
+            self.rng=SmallRng::seed_from_u64(continuation_seed);
             for _ in 0..samples {
                 let mut dead=state.holes.iter().fold(Hand::new(),|d,&h|d.union(h));
                 for i in 0..5 {let c=self.draw_excluding(dead);self.shared_runout[i]=c;dead=dead.add(c);}
+                let decision_seed=self.rng.gen::<u64>();
+                let next_board_rng=self.rng.clone();
+                self.rng=SmallRng::seed_from_u64(decision_seed);
                 match std::env::var("POKER_MODEL").unwrap_or_else(|_|"full".into()).as_str() {
                     "legacy"|"nojam"|"raw" => {self.cfr_external(&state,traverser,&mut history);},
                     _ => {continuation::train(self,&state,traverser,&mut history);}
                 }
-            }''',1)
+                self.rng=next_board_rng;
+            }
+            self.rng=next_deal_rng;''',1)
     # Separate action reopening permission from whether a player owes a call.
     s=s.replace('    pub last_aggressor: Option<u8>,','    pub last_aggressor: Option<u8>,\n    pub raise_allowed: [bool;6],')
     s=s.replace('            last_aggressor: None,','            last_aggressor: None,\n            raise_allowed: [true;6],')

@@ -1,5 +1,6 @@
 //! Bounded NLHE continuation. Signed external-sampling regrets and
 //! importance-corrected, own-reach-weighted averaging; no payoff bonuses.
+//! Episode chance streams are isolated from cloned decision streams.
 use super::{PreflopState,PreflopTrainer,PreflopInfoKey,RegretEntry};
 use crate::card::{rank,suit,Card,Hand};
 use crate::iso::canonical_hand;
