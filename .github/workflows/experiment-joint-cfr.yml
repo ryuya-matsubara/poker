@@ -49,7 +49,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: joint-cfr-v3-${{ matrix.id }}
+          name: joint-cfr-final-${{ matrix.id }}
           path: |
             experiment/chart.json
             experiment/policy.json

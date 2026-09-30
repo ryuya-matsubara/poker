@@ -39,6 +39,20 @@ fn wager(state: &mut PreflopState, p: usize, amount: i32) {
     state.all_in[p] = state.stacks[p] == 0;
 }
 
+fn actor(node: &Node) -> usize {
+    let start=node.bettor.map(|p|(ORDER.iter().position(|&i|i==p).unwrap()+1)%6).unwrap_or(0);
+    (0..6).map(|i|ORDER[(start+i)%6]).find(|&p|node.pending&(1<<p)!=0).unwrap()
+}
+
+fn amounts(pot: i32,stack: i32) -> Vec<i32> {
+    let mut v=vec![0];
+    for x in [(pot as f32/3.0).round() as i32,(pot as f32*0.75).round() as i32,stack] {
+        let x=x.max(2).min(stack); // NLHE minimum bet = one BB, unless all-in.
+        if !v.contains(&x) {v.push(x);}
+    }
+    v
+}
+
 /// Features use only the acting player's cards and the current public board.
 fn features(hole: Hand, board: Hand, street: usize) -> (u8,u8,u8) {
     let mut br = [0u8;13];
@@ -135,19 +149,11 @@ fn cfr(trainer: &mut PreflopTrainer,node: &Node,t: u8) -> f32 {
         next.pending=actionable(&next.state);
         return cfr(trainer,&next,t);
     }
-    let p=ORDER.into_iter().find(|&p|node.pending&(1<<p)!=0).unwrap();
+    let p=actor(node);
     let pot: i32=node.state.bets.iter().sum();
     // 0 means check/fold; facing a bet, 1 means call.
     let actions: Vec<i32>=if node.bettor.is_some() {vec![0,node.target]}
-        else {
-            let stack=node.state.stacks[p];
-            let mut v=vec![0];
-            for x in [(pot as f32/3.0).round() as i32,(pot as f32*0.75).round() as i32,stack] {
-                let x=x.max(1).min(stack);
-                if !v.contains(&x) {v.push(x);}
-            }
-            v
-        };
+        else {amounts(pot,node.state.stacks[p])};
     let k=key(node,p,actions.len());
     let strategy=trainer.postflop.entry(k).or_insert_with(||RegretEntry::new(actions.len())).current_strategy();
     let apply=|a:usize| {
@@ -213,6 +219,20 @@ mod tests {
         let strong=Hand::new().add(card(12,3)).add(card(11,3));
         assert_eq!(features(weak,flop,3).0,6);
         assert_eq!(features(strong,flop,3).0,7);
+    }
+    #[test]
+    fn minimum_bet_and_allin_exception() {
+        assert_eq!(amounts(4,40),vec![0,2,3,40]);
+        assert_eq!(amounts(4,1),vec![0,1]);
+    }
+    #[test]
+    fn multiway_responses_start_after_bettor() {
+        let mut node=Node{state:PreflopState::new_6max(PreflopBetConfig::default()),
+            board:Hand::new(),runout:[0;5],street:3,checked:0,
+            pending:(1<<3)|(1<<4)|(1<<5),bettor:Some(2),target:4,bet_kind:1,previous:0};
+        assert_eq!(actor(&node),3); // BTN follows CO, before SB and BB.
+        node.pending&=!(1<<3);
+        assert_eq!(actor(&node),4);
     }
     #[test]
     fn check_call_and_fold_preserve_zero_sum() {

@@ -87,7 +87,7 @@ def main():
     output = {history: hands for history, hands in output.items() if any(hands)}
     result = {'version': 3, 'iterations': iterations, 'source_commit': '4ade6a9e15a841c41867afde1258b9d110cd6fb1',
               'max_stack_bb': 20, 'bet_sizes_half_bb': sizes, 'sb_open_half_bb': sb_open,
-              'min_allin_depth': min_allin, 'continuation_model': 'joint-three-street-cfr-v2',
+              'min_allin_depth': min_allin, 'continuation_model': 'joint-three-street-cfr-v3',
               'oop_pot_tax': 0,
               'model_sha256': hashlib.sha256(Path(__file__).with_name('continuation.rs').read_bytes()).hexdigest(),
               'histories': output}

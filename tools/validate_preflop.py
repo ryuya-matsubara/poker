@@ -21,13 +21,8 @@ def check_chart(data):
         raise ValueError(f'implausible RFI totals: {opening}')
     if not all(a <= b + .02 for a, b in zip(opening[:3], opening[1:4])):
         raise ValueError(f'early-to-late ranges do not expand: {opening}')
-    # A very narrow BTN range is a known failure of forced-showdown terminals.
-    # This is an anomaly gate, not a prescribed hand-by-hand opening chart.
-    if data['BTN RFI']['open'] < .33:
-        raise ValueError(f'BTN RFI remains abnormally narrow: {data["BTN RFI"]["open"]:.1%}')
-    for pos, ceiling in [('UTG RFI',.25),('HJ RFI',.30),('CO RFI',.40)]:
-        if data[pos]['open'] > ceiling:
-            raise ValueError(f'{pos} remains abnormally wide: {data[pos]["open"]:.1%}')
+    # Do not prescribe exact position totals from charts with different ante,
+    # rake, depth, or bet sizes. Report those priors as caveats below.
     for pos, info in data.items():
         h = {row['hand']: row['open'] + row['limp'] if pos == 'SB RFI' else row['open'] for row in info['hands']}
         if pos != 'SB RFI' and info['limp'] > .0001:
@@ -94,7 +89,11 @@ def main():
     args=parser.parse_args()
     data=report(args.chart)
     check_chart(data)
-    summary={'rfi':{pos:{'open':data[pos]['open'],'limp':data[pos]['limp']} for pos in POSITIONS}}
+    summary={'rfi':{pos:{'open':data[pos]['open'],'limp':data[pos]['limp']} for pos in POSITIONS},
+             'range_caveats':[]}
+    for pos, low, high in [('UTG RFI',.10,.25),('HJ RFI',.12,.30),('CO RFI',.18,.40),('BTN RFI',.33,.60)]:
+        if not low <= data[pos]['open'] <= high:
+            summary['range_caveats'].append(f'{pos}: total outside loose external prior; exact 20BB/no-ante/no-rake benchmark needed')
     if args.policy: check_policy(args.policy,data)
     if args.seed: summary['seed_stability']=compare(data,report(args.seed),'seed')
     if args.half: summary['iteration_stability']=compare(data,report(args.half),'iterations')

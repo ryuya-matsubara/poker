@@ -61,5 +61,12 @@ vm.runInNewContext(script, context);
     assert.ok(Math.abs(root.at(-1) - chart.actions.find(a=>a.action==='allin').prob) < .003);
     assert.match(advice,/オールイン/);
   }
+  doAction(game.players[0],'raise',rootRaises[0]*500);
+  assert.equal(game.solverHistory,'00000001','BTN raise uses the first raise action after three folds');
+  assert.equal(game.solverDepth,1);
+  assert.equal(game.currentBet,rootRaises[0]*500);
+  assert.equal(game.players[0].stack,20000-rootRaises[0]*500);
+  doAction(game.players[1],'fold');
+  assert.equal(game.solverHistory,'0000000100','SB fold retains the BTN raise history');
   console.log('frontend preflop integration OK');
 })().catch(error => {console.error(error);process.exitCode=1;});
