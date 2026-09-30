@@ -4,6 +4,7 @@ from pathlib import Path
 from analyze_preflop_charts import report
 from analyze_jam import policy_delta,ev_summary
 from validate_preflop import check_chart,check_policy,compare
+from check_convergence import warnings
 
 POS=['UTG RFI','HJ RFI','CO RFI','BTN RFI','SB RFI']
 
@@ -29,6 +30,7 @@ def main():
             for source in [chart,policy,ev,folder/f'{length}m-frequency.json',folder/f'{length}m-frequency.csv']:
                 if source.exists():shutil.copy(source,dest/source.name)
             quality['action_ev'][f'seed{seed}-{length}m']=ev_summary(ev)
+            quality.setdefault('convergence_warnings',{})[f'seed{seed}-{length}m']=warnings(quality['action_ev'][f'seed{seed}-{length}m'])
         if seed!=42:
             quality['seed_stability'][str(seed)]=compare(charts,report(folder/'120m-chart.json'),'seed')
             quality['policy_deltas'][f'42-vs-{seed}']=policy_delta(final/'120m-policy.json',folder/'120m-policy.json')
@@ -47,7 +49,7 @@ def main():
     shutil.copy(final/'120m-chart.json','preflop_charts.json');shutil.copy(final/'120m-policy.json','preflop_policy.json')
     # Complete per-infoset metrics are stored separately to keep the summary usable.
     deltas=quality.pop('policy_deltas');write(out/'policy_deltas.json',deltas)
-    quality['policy_delta_summary']={k:{x:v[x] for x in ['infosets','mean_l1','max_action_delta']} for k,v in deltas.items()}
+    quality['policy_delta_summary']={k:{x:v[x] for x in ['histories_left','histories_right','histories_shared','infosets','mean_l1','max_action_delta']} for k,v in deltas.items()}
     write(Path('analysis/quality.json'),quality)
     write(out/'quality.json',quality)
     with (out/'frequency_169.csv').open('w',newline='') as f:
@@ -76,6 +78,8 @@ def main():
         for length in [30,60,120]:
             vv=quality['action_ev'][f'seed{seed}-{length}m'];aq=next(s for s in vv if s['spot']=='BTN RFI' and s['hand']=='AQo');weak=next(s for s in vv if s['hand']=='53s');jam=lambda s:next(a['probability'] for a in s['actions'] if a['action']=='allin');rows.append([seed,f'{length}M',f'{100*jam(aq):.2f}%',f'{100*jam(weak):.2f}%',f"{aq['jam_minus_best_small_bb']:.3f}",f"{aq['one_step_deviation_gain_bb']:.3f}"])
     lines+=['### Seed差とiteration差\n',table(['seed','iterations','AQo jam','53s jam','AQo jam-small EV','AQo one-step gain'],rows), '\n全infoset L1差は `jam/policy_deltas.json`、全positionのRFI RMS差は `quality.json` 参照。混合action頻度の変化はEVがほぼ同じ場合も起こる。1局面のone-step gainはNashConvやexploitabilityではない。\n']
+    warnings_rows=[[key,w['spot'],w['hand'],w.get('action',''),w['reason']] for key,v in quality['convergence_warnings'].items() for w in v]
+    lines+=['### Convergence warnings（頻度を変更しない診断）\n',table(['checkpoint','spot','hand','action','warning'],warnings_rows) if warnings_rows else 'Material average probabilityと有意な負advantageの組合せは、指定spotでは検出されなかった。これは全ゲームの収束証明ではない。']
     rows=[]
     selected={'BTN RFI':['32o','54o','65o','76o','T5o','J2o','J5o','Q2o','Q5o','Q8o','K2o','A2o','22','A5s','Q5s','AA','AQo'],'UTG RFI':['22','55','77','99','JTs','QJs','KJs','A5s','A9s','AJo','AQo','AKs','AKo']}
     for pos,labels in selected.items():

@@ -8,11 +8,11 @@ on:
       training_run:
         description: 'Validated 3-seed 30/60/120M training run'
         required: true
-        default: '36672549658'
+        default: '36674454225'
       ablation_run:
         description: 'Matched 9-model 30M ablation run'
         required: true
-        default: '36672625198'
+        default: '36674487519'
 permissions:
   contents: write
   actions: read
@@ -29,7 +29,7 @@ jobs:
           ref: solver-jam-final
       - name: Wait for final training and regression tests
         env:
-          TRAINING_RUN: ${{ inputs.training_run || '36672549658' }}
+          TRAINING_RUN: ${{ inputs.training_run || '36674454225' }}
         uses: actions/github-script@v7
         with:
           script: |
@@ -37,7 +37,7 @@ jobs:
               const result=await github.rest.actions.getWorkflowRun({...context.repo,run_id:Number(process.env.TRAINING_RUN)});
               if (result.data.status==='completed') {
                 if (result.data.conclusion!=='success') throw new Error('Final training/test workflow did not pass');
-                const ablation=await github.rest.actions.getWorkflowRun({...context.repo,run_id:36672625198});
+                const ablation=await github.rest.actions.getWorkflowRun({...context.repo,run_id:36674487519});
                 if(ablation.data.status!=='completed') {await new Promise(resolve=>setTimeout(resolve,10000));continue;}
                 if(ablation.data.conclusion!=='success') throw new Error('Required matched ablations failed');
                 return;
@@ -45,15 +45,19 @@ jobs:
               await new Promise(resolve=>setTimeout(resolve,10000));
             }
             throw new Error('Final training is still running');
+      - name: Refresh verification sources after training wait
+        uses: actions/checkout@v4
+        with:
+          ref: solver-jam-final
       - uses: actions/download-artifact@v4
         with:
-          run-id: ${{ inputs.training_run || '36672549658' }}
+          run-id: ${{ inputs.training_run || '36674454225' }}
           github-token: ${{ github.token }}
           pattern: jam-final-seed*
           path: runs
       - uses: actions/download-artifact@v4
         with:
-          run-id: ${{ inputs.ablation_run || '36672625198' }}
+          run-id: ${{ inputs.ablation_run || '36674487519' }}
           github-token: ${{ github.token }}
           pattern: jam-*-seed42-30m
           path: ablation
@@ -65,7 +69,7 @@ jobs:
           path: control
       - uses: actions/download-artifact@v4
         with:
-          run-id: ${{ inputs.training_run || '36672549658' }}
+          run-id: ${{ inputs.training_run || '36674454225' }}
           github-token: ${{ github.token }}
           pattern: jam-blueprints-seed*
           path: blueprints
@@ -81,6 +85,7 @@ jobs:
           python3 -m py_compile tools/*.py
           python3 tools/promote_jam.py runs ablation --control control
           python3 tools/test_preflop_export.py
+          python3 tools/test_solver_analysis.py
           node tools/test_preflop_frontend.cjs
           python3 tools/validate_preflop.py preflop_charts.json --policy preflop_policy.json --seed analysis/jam/seed73-120m/120m-chart.json --half analysis/jam/seed42-60m/60m-chart.json
       - name: Preserve verified data and report in repository

@@ -12,7 +12,7 @@ def policy_delta(left,right):
             if x is None or y is None or len(x)!=len(y):continue
             rows.append({'history':h,'bucket':i,'l1':sum(abs(p-q) for p,q in zip(x,y)),
                          'maximum_action_delta':max(abs(p-q) for p,q in zip(x,y))})
-    return {'infosets':len(rows),'mean_l1':sum(r['l1'] for r in rows)/max(1,len(rows)),
+    return {'histories_left':len(a),'histories_right':len(b),'histories_shared':len(a.keys()&b.keys()),'infosets':len(rows),'mean_l1':sum(r['l1'] for r in rows)/max(1,len(rows)),
             'max_action_delta':max((r['maximum_action_delta'] for r in rows),default=0),'rows':rows}
 
 

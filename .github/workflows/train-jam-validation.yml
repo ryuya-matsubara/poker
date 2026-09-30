@@ -1,4 +1,4 @@
-name: Train rich NLHE continuation and measure convergence v5
+name: Train rich NLHE continuation and measure convergence v6
 on:
   push:
     branches: [solver-jam-final]
