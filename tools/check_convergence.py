@@ -10,6 +10,10 @@ def warnings(ev):
     out=[]
     for spot in ev:
         for action in spot['actions']:
+            if action.get('estimated_regret_bb',0)-1.96*action.get('regret_se_bb',0)>.05:
+                out.append({'spot':spot['spot'],'hand':spot['hand'],'action':action['action'],
+                            'reason':'profitable frozen-policy one-step deviation; not a NashConv estimate',
+                            'advantage_bb':action['estimated_regret_bb'],'se_bb':action['regret_se_bb']})
             if action['probability']>.05 and action.get('estimated_regret_bb',0)+1.96*action.get('regret_se_bb',0)<-.05:
                 out.append({'spot':spot['spot'],'hand':spot['hand'],'action':action['action'],
                             'reason':'material average probability with significantly negative frozen-policy advantage',
