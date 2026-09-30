@@ -53,3 +53,5 @@ jobs:
 # Isolated chance stream, shared deal sequence across variants.
 
 # Preserve exact private identity; two chance samples in the increased-sampling control.
+
+# Unit test includes linear regret update weight.
