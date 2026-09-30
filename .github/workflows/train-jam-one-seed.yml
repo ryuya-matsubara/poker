@@ -1,0 +1,86 @@
+name: One-seed resumable joint CFR segment
+on:
+  workflow_call:
+    inputs:
+      seed:
+        type: number
+        required: true
+      start:
+        type: number
+        required: true
+      end:
+        type: number
+        required: true
+      source_run:
+        type: number
+        required: false
+        default: 0
+permissions:
+  contents: read
+  actions: read
+jobs:
+  train:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    env:
+      POKER_MODEL: full
+      POKER_CHECKPOINT_PREFIX: experiment
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 679913ade0d3a19e10573c5a9f7b7636d5bb2a3b
+      - run: bash tools/provision_solver_memory.sh
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Build the immutable v8 training source
+        run: |
+          git clone https://github.com/exinori/DCFR-SOLVER.git solver
+          git -C solver checkout 4ade6a9e15a841c41867afde1258b9d110cd6fb1
+          python3 tools/upgrade_solver.py solver/src
+          python3 tools/add_resumable_solver.py solver/src
+      - name: Download checkpoint from the source run
+        if: inputs.source_run > 0
+        env:
+          SOURCE_RUN: ${{ inputs.source_run }}
+          SEGMENT_START: ${{ inputs.start }}
+          SOLVER_SEED: ${{ inputs.seed }}
+        run: |
+          mkdir -p resume
+          gh run download "$SOURCE_RUN" --repo "${{ github.repository }}" --name "joint-${SEGMENT_START}-seed${SOLVER_SEED}" --dir resume
+      - uses: actions/download-artifact@v4
+        if: inputs.source_run == 0
+        with:
+          name: joint-${{ inputs.start }}-seed${{ inputs.seed }}
+          path: resume
+      - name: Validate and train the exact continuation
+        env:
+          SEGMENT_START: ${{ inputs.start }}
+          SEGMENT_END: ${{ inputs.end }}
+          SOLVER_SEED: ${{ inputs.seed }}
+          POKER_RESUME: ${{ github.workspace }}/resume/joint-checkpoint.gz
+        run: |
+          test -s "$POKER_RESUME"
+          mkdir -p experiment
+          /usr/bin/time -v cargo run --release --manifest-path solver/Cargo.toml -- preflop --iterations "$SEGMENT_END" --seed "$SOLVER_SEED" --open-size 5 --sb-open-size 6 --bet3-size 14 --bet4-size 28 --oop-pot-tax 0 --output experiment/final.bin --chart-output experiment/final-chart.json 2>experiment/training.log
+          python3 tools/export_preflop_policy.py experiment/final.bin experiment/final-policy.json --max-histories 300 --min-visits 30
+          python3 tools/analyze_preflop_charts.py experiment/final-chart.json --output experiment/final-frequency.json
+          sha256sum tools/continuation.rs tools/continuation_legacy.rs tools/upgrade_solver.py tools/patch_solver_base.py tools/add_resumable_solver.py tools/trainer_checkpoint.rs > experiment/source-sha256.txt
+          git rev-parse HEAD > experiment/source-commit.txt
+          test "$(cat experiment/source-commit.txt)" = "679913ade0d3a19e10573c5a9f7b7636d5bb2a3b"
+      - uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: joint-${{ inputs.end }}-seed${{ inputs.seed }}
+          path: experiment/joint-checkpoint.gz
+          compression-level: 0
+          retention-days: 10
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: measurements-${{ inputs.end }}-seed${{ inputs.seed }}
+          path: |
+            experiment/*.json
+            experiment/*.txt
+            experiment/training.log
+            experiment/*blueprint.bin
+          compression-level: 6
