@@ -25,7 +25,8 @@ jobs:
       - name: Unit and randomized property tests
         env:
           POKER_MODEL: ${{ matrix.model }}
-        run: cargo test --release --lib --manifest-path solver/Cargo.toml preflop::
+        run: |
+          cargo test --release --lib --manifest-path solver/Cargo.toml preflop::
       - name: Matched training and frozen-policy action EV
         env:
           POKER_MODEL: ${{ matrix.model }}

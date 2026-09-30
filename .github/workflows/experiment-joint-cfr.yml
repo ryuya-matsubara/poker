@@ -1,10 +1,5 @@
 name: Learn bounded postflop continuation
 on:
-  push:
-    paths:
-      - .github/workflows/experiment-joint-cfr.yml
-      - tools/continuation.rs
-      - tools/patch_solver.py
   workflow_dispatch:
 permissions:
   contents: read
