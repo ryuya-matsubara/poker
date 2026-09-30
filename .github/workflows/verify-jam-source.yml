@@ -15,7 +15,8 @@ jobs:
           git clone https://github.com/exinori/DCFR-SOLVER.git solver
           git -C solver checkout 4ade6a9e15a841c41867afde1258b9d110cd6fb1
           python3 tools/patch_solver.py solver/src
-          cargo test --release --lib --manifest-path solver/Cargo.toml preflop::
+          cat tools/cfr_kuhn_regression.rs >> solver/src/continuation.rs
+          POKER_MODEL=full cargo test --release --lib --manifest-path solver/Cargo.toml preflop:: -- --nocapture
           python3 tools/test_preflop_export.py
           python3 tools/test_solver_analysis.py
 
