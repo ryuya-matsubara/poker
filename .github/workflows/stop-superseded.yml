@@ -12,7 +12,7 @@ jobs:
       - uses: actions/github-script@v7
         with:
           script: |
-            for (const id of [36674454225,36674487519,36675114349]) {
+            for (const id of [36675608008,36675637401,36676063670]) {
               const r=await github.rest.actions.getWorkflowRun({...context.repo,run_id:id});
               if(r.data.status!=='completed') await github.rest.actions.cancelWorkflowRun({...context.repo,run_id:id});
             }

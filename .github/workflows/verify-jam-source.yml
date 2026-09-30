@@ -18,3 +18,5 @@ jobs:
           cargo test --release --lib --manifest-path solver/Cargo.toml preflop::
           python3 tools/test_preflop_export.py
           python3 tools/test_solver_analysis.py
+
+# Compact exact-private continuation entries.
