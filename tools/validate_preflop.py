@@ -75,6 +75,8 @@ def check_policy(policy_path, charts):
         for row in rows:
             if row is not None and (not all(0 <= p <= 1 for p in row) or abs(sum(row)-1) > .002):
                 raise ValueError(f'invalid policy probability: {pos}')
+    if any(row is None for row in histories.get('010000',[None]*169)):
+        raise ValueError('missing shallow response strategy after UTG 2BB / two folds')
     # Warnings detect model collapse; they never alter probabilities.
     # Q5o is bucket 91 + 10*9/2 + 3; compare chart and full-policy exports.
     btn = next(r for r in charts['BTN RFI']['hands'] if r['hand']=='Q5o')

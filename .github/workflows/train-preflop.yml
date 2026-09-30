@@ -1,4 +1,4 @@
-name: Train and validate 6-max 20BB strategy
+name: Train rich NLHE continuation and measure convergence
 on:
   workflow_dispatch:
 permissions:
@@ -6,70 +6,49 @@ permissions:
 jobs:
   train:
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 350
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - {id: seed42-30m, seed: 42, iterations: 30000000}
-          - {id: seed73-60m, seed: 73, iterations: 60000000}
-          - {id: seed42-60m, seed: 42, iterations: 60000000}
+        seed: [42, 73, 101]
+    env:
+      POKER_MODEL: full
+      POKER_CHECKPOINT_PREFIX: experiment
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
-      - name: Pin and patch solver
+      - name: Construct pinned solver
         run: |
           git clone https://github.com/exinori/DCFR-SOLVER.git solver
           git -C solver checkout 4ade6a9e15a841c41867afde1258b9d110cd6fb1
-          test "$(git -C solver rev-parse HEAD)" = 4ade6a9e15a841c41867afde1258b9d110cd6fb1
-          python3 tools/patch_solver.py solver/src
-      - name: Payoff and 20BB regression tests
+          python3 tools/upgrade_solver.py solver/src
+      - name: Validate exact chip rules and sampled updates
         run: |
           cargo test --release --lib --manifest-path solver/Cargo.toml preflop::
-      - name: Train joint preflop and postflop CFR pilot
-        run: |
-          mkdir -p experiment
-          /usr/bin/time -v cargo run --release --manifest-path solver/Cargo.toml -- preflop \
-            --iterations ${{ matrix.iterations }} --seed ${{ matrix.seed }} \
-            --open-size 5 --sb-open-size 6 --bet3-size 14 --bet4-size 28 \
-            --oop-pot-tax 0.00 --output experiment/blueprint.bin \
-            --chart-output experiment/chart.json 2>experiment/training.log
-          python3 tools/analyze_preflop_charts.py experiment/chart.json --output experiment/frequencies.json
-          python3 tools/export_preflop_policy.py experiment/blueprint.bin experiment/policy.json --max-histories 300 --min-visits 30
-          cp experiment/chart.json preflop_charts.json
-          cp experiment/policy.json preflop_policy.json
-          node tools/test_preflop_frontend.cjs
           python3 tools/test_preflop_export.py
-          python3 tools/validate_preflop.py experiment/chart.json --policy experiment/policy.json --output experiment/validation.json
+      - name: Train 30M, 60M and 120M along one RNG trajectory
+        run: |
+          mkdir experiment
+          /usr/bin/time -v cargo run --release --manifest-path solver/Cargo.toml -- preflop --iterations 120000000 --seed ${{ matrix.seed }} --open-size 5 --sb-open-size 6 --bet3-size 14 --bet4-size 28 --oop-pot-tax 0 --output experiment/final.bin --chart-output experiment/final-chart.json 2>experiment/training.log
+          for length in 30 60 120; do
+            python3 tools/export_preflop_policy.py experiment/${length}m-blueprint.bin experiment/${length}m-policy.json --max-histories 300 --min-visits 30
+            python3 tools/analyze_preflop_charts.py experiment/${length}m-chart.json --output experiment/${length}m-frequency.json
+          done
+          cp experiment/120m-chart.json preflop_charts.json
+          cp experiment/120m-policy.json preflop_policy.json
+          python3 tools/validate_preflop.py preflop_charts.json --policy preflop_policy.json --output experiment/validation.json
+          node tools/test_preflop_frontend.cjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: joint-cfr-final-${{ matrix.id }}
-          path: |
-            experiment/chart.json
-            experiment/policy.json
-            experiment/frequencies.json
-            experiment/frequencies.csv
-            experiment/training.log
-            experiment/validation.json
-          if-no-files-found: warn
-
-  validate:
-    needs: train
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
-        with:
-          pattern: joint-cfr-final-*
-          path: runs
-      - name: Compare seed and learning length
-        run: |
-          python3 tools/validate_preflop.py runs/joint-cfr-final-seed42-60m/chart.json --policy runs/joint-cfr-final-seed42-60m/policy.json --seed runs/joint-cfr-final-seed73-60m/chart.json --half runs/joint-cfr-final-seed42-30m/chart.json --output runs/quality.json
+          name: jam-blueprints-seed${{ matrix.seed }}
+          path: experiment/*blueprint.bin
+          compression-level: 9
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
-          name: validated-preflop-strategy-20bb
+          name: jam-final-seed${{ matrix.seed }}
           path: |
-            runs/joint-cfr-final-seed42-60m/chart.json
-            runs/joint-cfr-final-seed42-60m/policy.json
-            runs/quality.json
+            experiment/*.json
+            experiment/*.csv
+            experiment/training.log

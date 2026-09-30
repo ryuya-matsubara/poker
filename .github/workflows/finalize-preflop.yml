@@ -29,7 +29,7 @@ jobs:
         with:
           script: |
             for (let attempt=0; attempt<270; attempt++) {
-              const result=await github.rest.actions.getWorkflowRun({...context.repo,run_id:36649555305});
+              const result=await github.rest.actions.getWorkflowRun({...context.repo,run_id:36672549658});
               if (result.data.status==='completed') {
                 if (result.data.conclusion!=='success') throw new Error('Final training/test workflow did not pass');
                 return;
@@ -39,36 +39,36 @@ jobs:
             throw new Error('Final training is still running');
       - uses: actions/download-artifact@v4
         with:
-          run-id: 36649555305
+          run-id: 36672549658
           github-token: ${{ github.token }}
-          pattern: joint-cfr-final-*
+          pattern: jam-final-seed*
           path: runs
       - uses: actions/download-artifact@v4
         with:
-          run-id: 36648767796
+          run-id: 36672625198
           github-token: ${{ github.token }}
-          name: raw-terminal-mixed-open-seed42-30m
-          path: runs/raw
+          pattern: jam-*-seed42-30m
+          path: ablation
       - uses: actions/download-artifact@v4
         with:
-          run-id: 36647806881
+          run-id: 36671589403
           github-token: ${{ github.token }}
-          name: joint-cfr-v2-seed42-30m
-          path: runs/fixed-open
+          name: jam-unclipped-control-seed42-30m
+          path: control
       - name: Generate and verify exact strategy
         run: |
           python3 -m py_compile tools/*.py
-          python3 tools/promote_preflop.py
+          python3 tools/promote_jam.py runs ablation --control control
           python3 tools/test_preflop_export.py
           node tools/test_preflop_frontend.cjs
-          python3 tools/validate_preflop.py preflop_charts.json --policy preflop_policy.json --seed analysis/runs/seed73-60m.json --half analysis/runs/seed42-30m.json
+          python3 tools/validate_preflop.py preflop_charts.json --policy preflop_policy.json --seed analysis/jam/seed73-120m/120m-chart.json --half analysis/jam/seed42-60m/60m-chart.json
       - name: Preserve verified data and report in repository
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add index.html README.md preflop_charts.json preflop_policy.json analysis
           if ! git diff --cached --quiet; then
-            git commit -m 'Publish validated 20BB joint-CFR strategy and full range report'
+            git commit -m 'Publish validated signed-MCCFR continuation, EV and convergence evidence'
             git push origin HEAD:main
           fi
       - name: Wait for earlier Pages builds
@@ -92,6 +92,23 @@ jobs:
           path: public
       - uses: actions/deploy-pages@v4
         id: deployment
+      - name: Verify live HTML, chart and full policy
+        run: |
+          python3 - <<'PYCODE'
+          import json,time,urllib.request
+          base='https://ryuya-matsubara.github.io/poker/'
+          expected={name:json.load(open(name)) for name in ['preflop_charts.json','preflop_policy.json']}
+          for attempt in range(12):
+              try:
+                  for name,data in expected.items():
+                      with urllib.request.urlopen(base+name+'?v=signed-full120m-20260930',timeout=20) as r: assert json.load(r)==data
+                  with urllib.request.urlopen(base+'?v=signed-full120m-20260930',timeout=20) as r: assert 'signed-full120m-20260930' in r.read().decode()
+                  print('Live HTML and both full strategy JSON files verified')
+                  break
+              except Exception:
+                  if attempt==11: raise
+                  time.sleep(5)
+          PYCODE
       - uses: actions/upload-artifact@v4
         if: always()
         with:
