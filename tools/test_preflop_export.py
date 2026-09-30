@@ -17,11 +17,12 @@ class ExportTests(unittest.TestCase):
         for sizes in [[4,5],[14],[28]]:
             put('B',len(sizes))
             put('i'*len(sizes),*sizes)
-        put('BiBQQ',1,6,0,10000,169*5)
-        for depth in range(5):
+        put('BiBQQ',1,6,0,10000,169*6)
+        for depth in range(6):
             for bucket in range(169):
-                put('BH',bucket,depth)
-                data.extend(bytes(depth))
+                history=bytes(depth) if depth<5 else bytes([1,0,0])
+                put('BH',bucket,len(history))
+                data.extend(history)
                 n=4
                 put('H',n)
                 put('f'*n,*([0]*n))
@@ -51,6 +52,17 @@ class ExportTests(unittest.TestCase):
                 for row in rows:
                     self.assertAlmostEqual(sum(row),1,places=3)
             self.assertEqual(len(policy['histories']['000000'][139]),4)
+            self.assertEqual(len(policy['histories']['010000'][17]),4)
+
+    def test_low_mass_shallow_histories_survive(self):
+        with tempfile.TemporaryDirectory() as temp:
+            folder=Path(temp)
+            self.blueprint(folder/'blueprint.bin')
+            result=subprocess.run([sys.executable,str(Path(__file__).with_name('export_preflop_policy.py')),
+                str(folder/'blueprint.bin'),str(folder/'policy.json'),'--max-histories','1'],capture_output=True,text=True)
+            self.assertEqual(result.returncode,0,result.stderr)
+            data=json.loads((folder/'policy.json').read_text())
+            self.assertTrue(all(row is not None for row in data['histories']['010000']))
 
     def test_reject_nonfinite_probability(self):
         with tempfile.TemporaryDirectory() as temp:

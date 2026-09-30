@@ -45,3 +45,5 @@ jobs:
             experiment/*.json
             experiment/*.csv
             experiment/training.log
+
+# Measured rank-band abstraction; same seed and iteration budget.

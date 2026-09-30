@@ -1,5 +1,8 @@
-name: Validate and publish final preflop strategy
+name: Prepare measured jam release
 on:
+  push:
+    branches: [solver-jam-final]
+    paths: [.github/workflows/prepare-jam-release.yml]
   workflow_dispatch:
     inputs:
       training_run:
@@ -13,32 +16,30 @@ on:
 permissions:
   contents: write
   actions: read
-  pages: write
-  id-token: write
 concurrency:
   group: preflop-release
   cancel-in-progress: false
 jobs:
   publish:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+    timeout-minutes: 350
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: main
+          ref: solver-jam-final
       - name: Wait for final training and regression tests
         env:
-          TRAINING_RUN: ${{ inputs.training_run }}
+          TRAINING_RUN: ${{ inputs.training_run || '36672549658' }}
         uses: actions/github-script@v7
         with:
           script: |
-            for (let attempt=0; attempt<270; attempt++) {
+            for (let attempt=0; attempt<1500; attempt++) {
               const result=await github.rest.actions.getWorkflowRun({...context.repo,run_id:Number(process.env.TRAINING_RUN)});
               if (result.data.status==='completed') {
                 if (result.data.conclusion!=='success') throw new Error('Final training/test workflow did not pass');
+                const ablation=await github.rest.actions.getWorkflowRun({...context.repo,run_id:36672625198});
+                if(ablation.data.status!=='completed') {await new Promise(resolve=>setTimeout(resolve,10000));continue;}
+                if(ablation.data.conclusion!=='success') throw new Error('Required matched ablations failed');
                 return;
               }
               await new Promise(resolve=>setTimeout(resolve,10000));
@@ -46,13 +47,13 @@ jobs:
             throw new Error('Final training is still running');
       - uses: actions/download-artifact@v4
         with:
-          run-id: ${{ inputs.training_run }}
+          run-id: ${{ inputs.training_run || '36672549658' }}
           github-token: ${{ github.token }}
           pattern: jam-final-seed*
           path: runs
       - uses: actions/download-artifact@v4
         with:
-          run-id: ${{ inputs.ablation_run }}
+          run-id: ${{ inputs.ablation_run || '36672625198' }}
           github-token: ${{ github.token }}
           pattern: jam-*-seed42-30m
           path: ablation
@@ -64,7 +65,7 @@ jobs:
           path: control
       - uses: actions/download-artifact@v4
         with:
-          run-id: ${{ inputs.training_run }}
+          run-id: ${{ inputs.training_run || '36672549658' }}
           github-token: ${{ github.token }}
           pattern: jam-blueprints-seed*
           path: blueprints
@@ -89,51 +90,16 @@ jobs:
           git add index.html README.md preflop_charts.json preflop_policy.json analysis
           if ! git diff --cached --quiet; then
             git commit -m 'Publish validated signed-MCCFR continuation, EV and convergence evidence'
-            git push origin HEAD:main
+            git push origin HEAD:solver-jam-final
           fi
-      - name: Wait for earlier Pages builds
-        uses: actions/github-script@v7
-        with:
-          script: |
-            for (let attempt=0; attempt<60; attempt++) {
-              const result=await github.rest.actions.listWorkflowRunsForRepo({...context.repo,per_page:30});
-              const active=result.data.workflow_runs.filter(r=>r.id!==context.runId && /pages/i.test(r.name||'') && ['queued','in_progress','waiting','pending'].includes(r.status));
-              if (!active.length) return;
-              await new Promise(resolve=>setTimeout(resolve,5000));
-            }
-            throw new Error('Earlier Pages deployment did not finish in time');
-      - uses: actions/configure-pages@v5
-      - name: Stage only web application files
-        run: |
-          mkdir public
-          cp index.html preflop_charts.json preflop_policy.json public/
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: public
-      - uses: actions/deploy-pages@v4
-        id: deployment
-      - name: Verify live HTML, chart and full policy
-        run: |
-          python3 - <<'PYCODE'
-          import json,time,urllib.request
-          base='https://ryuya-matsubara.github.io/poker/'
-          expected={name:json.load(open(name)) for name in ['preflop_charts.json','preflop_policy.json']}
-          for attempt in range(12):
-              try:
-                  for name,data in expected.items():
-                      with urllib.request.urlopen(base+name+'?v=signed-full120m-20260930',timeout=20) as r: assert json.load(r)==data
-                  with urllib.request.urlopen(base+'?v=signed-full120m-20260930',timeout=20) as r: assert 'signed-full120m-20260930' in r.read().decode()
-                  print('Live HTML and both full strategy JSON files verified')
-                  break
-              except Exception:
-                  if attempt==11: raise
-                  time.sleep(5)
-          PYCODE
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: final-preflop-quality
+          name: prepared-jam-release
           path: |
+            preflop_charts.json
+            preflop_policy.json
+            analysis/jam
             analysis/quality.json
             analysis/preflop_model_fix.md
-            analysis/final_frequency_169.csv
+            analysis/continuation_evaluation.md

@@ -1,6 +1,6 @@
 """Layer reach-corrected diagnostics and bounded raises on the pinned patch."""
 from pathlib import Path
-from patch_solver import patch, replace_once
+from patch_solver_base import patch, replace_once
 import argparse
 
 def upgrade(directory):
