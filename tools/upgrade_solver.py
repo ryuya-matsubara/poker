@@ -7,9 +7,10 @@ def upgrade(directory):
     patch(directory)
     p=directory/'preflop.rs';s=p.read_text()
     s=s.replace('#[path = "continuation.rs"] mod continuation;','#[path = "continuation.rs"] mod continuation;\n#[path = "continuation_legacy.rs"] mod continuation_legacy;')
-    s=replace_once(s,'    postflop: HashMap<continuation::InfoKey, RegretEntry>,','    postflop: HashMap<continuation::InfoKey, RegretEntry>,\n    shared_runout: [Card;5],')
-    s=replace_once(s,'            postflop: HashMap::new(),','            postflop: HashMap::new(),\n            shared_runout: [0;5],')
-    s=s.replace('            self.cfr_external(&state, traverser, &mut history);','''            let samples=if std::env::var("POKER_MODEL").ok().as_deref()==Some("chance") {4}else{1};
+    s=replace_once(s,'    postflop: HashMap<continuation::InfoKey, RegretEntry>,','    postflop: HashMap<continuation::InfoKey, RegretEntry>,\n    shared_runout: [Card;5],\n    post_strategy: HashMap<continuation::InfoKey,Vec<f32>>,\n    pre_strategy: HashMap<PreflopInfoKey,Vec<f32>>,')
+    s=replace_once(s,'            postflop: HashMap::new(),','            postflop: HashMap::new(),\n            shared_runout: [0;5],\n            post_strategy: HashMap::new(),\n            pre_strategy: HashMap::new(),')
+    s=s.replace('            self.cfr_external(&state, traverser, &mut history);','''            self.post_strategy.clear();self.pre_strategy.clear();
+            let samples=if std::env::var("POKER_MODEL").ok().as_deref()==Some("chance") {4}else{1};
             for _ in 0..samples {
                 let mut dead=state.holes.iter().fold(Hand::new(),|d,&h|d.union(h));
                 for i in 0..5 {let c=self.draw_excluding(dead);self.shared_runout[i]=c;dead=dead.add(c);}

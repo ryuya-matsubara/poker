@@ -47,9 +47,9 @@ fn apply(n:&Node,p:usize,a:i32,index:usize)->Node {
  if a<0 {c.state.folded[p]=true;return c;}
  let add=(a-c.paid[p]).max(0);let paid=wager(&mut c.state,p,add);c.paid[p]+=paid;
  if c.paid[p]>n.target {
-  let increment=c.paid[p]-n.target;let full=increment>=n.last_raise;
+  let increment=c.paid[p]-n.target;let full=n.target==0||increment>=n.last_raise;
   c.bettor=Some(p);c.target=c.paid[p];if n.target>0 {c.raises+=1;}
-  if full {c.last_raise=increment;c.acted=1<<p;}
+  if full {c.last_raise=increment.max(2);c.acted=1<<p;}
   c.pending=actionable(&c.state)&!(1<<p);
  }c
 }
@@ -90,7 +90,10 @@ fn cfr(t:&mut PreflopTrainer,n:&Node,tr:u8,r:Reach,learn:bool)->f32 {
   let mut c=n.clone();c.street+=1;c.board=c.board.add(c.runout[c.street-1]);c.paid=[0;6];c.target=0;c.last_raise=2;c.raises=0;c.acted=0;c.previous=((n.previous<<5)|((n.bettor.unwrap_or(6) as u16)<<2)|n.raises.min(3) as u16)&1023;c.history=0;c.bettor=None;c.pending=actionable(&c.state);return cfr(t,&c,tr,r,learn);
  }
  let p=actor(n);let a=actions(n,p);let k=key(n,p,&a);
- let s=t.postflop.get(&k).map(|e|if learn{e.current_strategy()}else{e.average_strategy()}).unwrap_or_else(||vec![1./a.len() as f32;a.len()]);
+ let s=if learn {
+  if !t.post_strategy.contains_key(&k) {let v=t.postflop.get(&k).map(|e|e.current_strategy()).unwrap_or_else(||vec![1./a.len() as f32;a.len()]);t.post_strategy.insert(k,v);}
+  t.post_strategy[&k].clone()
+ }else{t.postflop.get(&k).map(|e|e.average_strategy()).unwrap_or_else(||vec![1./a.len() as f32;a.len()])};
  if p==tr as usize&&learn {
   let shared=t.rng.clone();let mut v=Vec::new();for (i,&x) in a.iter().enumerate(){t.rng=shared.clone();v.push(cfr(t,&apply(n,p,x,i),tr,Reach{own:r.own*s[i] as f64,..r},true));}
   let value=v.iter().zip(&s).map(|(x,p)|x*p).sum();let w=t.blueprint.iterations as f64+1.;let e=t.postflop.entry(k).or_insert_with(||PostEntry::new(a.len()));update(e,&s,&v,value,r,w);value
@@ -113,7 +116,10 @@ fn leaf(t:&mut PreflopTrainer,s:&PreflopState,tr:u8,h:&[u8],r:Reach,learn:bool)-
 }
 fn pre(t:&mut PreflopTrainer,s:&PreflopState,tr:u8,h:&mut Vec<u8>,r:Reach,learn:bool)->f32 {
  match s.node_type(){super::PreflopNodeType::TerminalFold(w)=>s.payoff_fold(w)[tr as usize],super::PreflopNodeType::TerminalShowdown=>leaf(t,s,tr,h,r,learn),super::PreflopNodeType::Decision(p)=>{
- let a=s.actions();let cards:Vec<_>=s.holes[p as usize].iter().collect();let k=PreflopInfoKey{bucket:canonical_hand(cards[0],cards[1]).index(),history:h.clone()};let strat=t.blueprint.entries.get(&k).map(|e|if learn{e.current_strategy()}else{e.average_strategy()}).unwrap_or_else(||vec![1./a.len() as f32;a.len()]);
+ let a=s.actions();let cards:Vec<_>=s.holes[p as usize].iter().collect();let k=PreflopInfoKey{bucket:canonical_hand(cards[0],cards[1]).index(),history:h.clone()};let strat=if learn {
+ if !t.pre_strategy.contains_key(&k){let v=t.blueprint.entries.get(&k).map(|e|e.current_strategy()).unwrap_or_else(||vec![1./a.len() as f32;a.len()]);t.pre_strategy.insert(k.clone(),v);}
+ t.pre_strategy[&k].clone()
+ }else{t.blueprint.entries.get(&k).map(|e|e.average_strategy()).unwrap_or_else(||vec![1./a.len() as f32;a.len()])};
  if p==tr&&learn {let shared=t.rng.clone();let mut values=vec![0.;a.len()];for (i,&x) in a.iter().enumerate(){t.rng=shared.clone();h.push(i as u8);values[i]=pre(t,&s.apply(x),tr,h,Reach{own:r.own*strat[i] as f64,..r},true);h.pop();}let value=values.iter().zip(&strat).map(|(v,p)|v*p).sum();let w=t.blueprint.iterations as f64+1.;update(t.blueprint.entries.entry(k).or_insert_with(||RegretEntry::new(a.len())),&strat,&values,value,r,w);value}
  else {let epsilon=if learn{0.05}else{0.};let q:Vec<_>=strat.iter().map(|&x|(1.-epsilon)*x+epsilon/a.len() as f32).collect();let i=sample(&q,&mut t.rng);h.push(i as u8);let ratio=strat[i] as f64/q[i] as f64;let v=pre(t,&s.apply(a[i]),tr,h,if learn{Reach{q:r.q*q[i] as f64,cf:r.cf*ratio,..r}}else{r},learn);h.pop();v*ratio as f32}
  } }
