@@ -1,0 +1,47 @@
+name: Isolate stochastic regret clipping
+on:
+  push:
+    branches: [solver-jam-final]
+    paths: [.github/workflows/diagnose-regret-floor.yml]
+permissions:
+  contents: read
+jobs:
+  compare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    env:
+      POKER_MODEL: legacy
+      POKER_EV_OUTPUT: experiment/ev.json
+      POKER_EV_SAMPLES: 10000
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 638a31d2a37d06ff103d46bede8f078bf9ce7d67
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Change only stochastic regret clipping
+        run: |
+          git clone https://github.com/exinori/DCFR-SOLVER.git solver
+          git -C solver checkout 4ade6a9e15a841c41867afde1258b9d110cd6fb1
+          python3 tools/upgrade_solver.py solver/src
+          python3 - <<'PY'
+          from pathlib import Path
+          for name,old,new in [('preflop.rs','(entry.regrets[a] + action_values[a] - node_value).max(0.0)','entry.regrets[a] + action_values[a] - node_value'),('continuation_legacy.rs','(entry.regrets[a]+values[a]-value).max(0.0)','entry.regrets[a]+values[a]-value')]:
+              p=Path('solver/src')/name
+              s=p.read_text()
+              assert s.count(old)==1
+              p.write_text(s.replace(old,new))
+          PY
+      - name: Matched 30M signed-regret ablation
+        run: |
+          mkdir experiment
+          /usr/bin/time -v cargo run --release --manifest-path solver/Cargo.toml -- preflop --iterations 30000000 --seed 42 --open-size 5 --sb-open-size 6 --bet3-size 14 --bet4-size 28 --oop-pot-tax 0 --output experiment/blueprint.bin --chart-output experiment/chart.json 2>experiment/training.log
+          python3 tools/analyze_preflop_charts.py experiment/chart.json --output experiment/frequency.json
+          cat experiment/ev.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: jam-unclipped-control-seed42-30m
+          path: |
+            experiment/*.json
+            experiment/*.csv
+            experiment/training.log
