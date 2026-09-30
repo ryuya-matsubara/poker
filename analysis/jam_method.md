@@ -60,4 +60,17 @@ open2/2.5BB（SB3BB）、3bet7BB、4bet14BB、all-inをbaselineとする。追�
 - [OpenSpiel external sampling](https://github.com/google-deepmind/open_spiel/blob/master/open_spiel/python/algorithms/external_sampling_mccfr.py): simple averageとfull average、multi-playerでの制約をコードと比較。
 - [CFR+論文](https://arxiv.org/abs/1407.5042)、[Local Best Response](https://arxiv.org/abs/1612.07547): full-game BR/NashConvは未計算。局所EV評価のmax mean action−policy meanはone-step deviation検査で、全streetで最適反応するBRではない。
 
+外部条件の記録（2026-09-30確認）:
+
+| 公開資料 | 人数/stack | ante | rake | open size | 用途 |
+|---|---|---|---|---|---|
+| GTO Wizard BTN20BB記事 | BTN/SB/BB局所・20BB chipEV、完全6max range無し | total1BB | 記事はchipEV | minraise/jam | shove/rangeの方向のみ。noanteの正解ではない |
+| MonkerGuy 6max NLH noante pack | 6max・20〜200BB | 0 | 5% | public listingでは全size不明 | 同条件ではない。公開169頻度無し、有料購入していない |
+| HRC公式手順 | configurable cash/MTT | configurable | configurable | tree設定 | モデル設計の資料。今回のsolve/基準表は取得していない |
+| Simple Preflop Holdem公式 | configurable multiway | configurable | configurable | tree設定 | postflop abstractionとsampling方式の確認。今回のsolve/基準表無し |
+
+[MonkerGuy public listing](https://www.monkerguy.com/) は6max/noanteでもrake5%なので、今回のrake0戦略へ一致を求めない。[Simple Preflop Holdem](https://simplepoker.com/en/Solutions/Simple_Preflop_Holdem) はcard abstraction/Monte Carloを使うsolverだが、その商用結果を今回生成したと主張しない。
+
 同一条件の公認GTOチャートを取得できなかったので、絶対的なGTO距離、GTO Wizard相当、何%GTOという数値は提示しない。premium/weak、suited/offsuit、position、action EV、全169レンジ、複数seed/iterationの内部validationを行う。境界handの一致を収束の証明として使わない。ゲーム中のpostflop CPUはこれらtraining postflop policyを参照せず既存の簡易decisionを使うため、**CPU全体がGTOであるという主張はできない。**
+
+EV診断の注意：同じデータで最大mean actionを選ぶためone-step gainはsampling noiseで上振れし得る。95%警告は探索的で多重比較補正はしていない。到達しにくいoff-policy postflop infosetの平均戦略は未学習ならuniformとなり、forced action EVは最適なpostflop continuation EVではない。この不確実性もfull-game GTO誤差とは区別する。
