@@ -23,7 +23,7 @@ def read_int(source, fmt):
     return struct.unpack('<' + fmt, read_exact(source, struct.calcsize('<' + fmt)))[0]
 
 
-def entries(path):
+def entries(path, include_regrets=False):
     with path.open('rb') as source:
         sizes = []
         for _ in range(read_int(source, 'B')):
@@ -41,9 +41,9 @@ def entries(path):
             n = read_int(source, 'H')
             if n < 2 or n > 5 or bucket >= 169:
                 raise ValueError('Unexpected action or hand count')
-            read_exact(source, 4 * n)  # regret values
+            regrets = struct.unpack('<' + 'f' * n, read_exact(source, 4 * n))
             averages = struct.unpack('<' + 'f' * n, read_exact(source, 4 * n))
-            yield history, bucket, averages
+            yield (history, bucket, averages, regrets) if include_regrets else (history, bucket, averages)
         if source.read(1):
             raise ValueError('Unexpected bytes after blueprint')
 

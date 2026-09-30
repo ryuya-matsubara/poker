@@ -62,6 +62,19 @@ jobs:
           github-token: ${{ github.token }}
           name: jam-unclipped-control-seed42-30m
           path: control
+      - uses: actions/download-artifact@v4
+        with:
+          run-id: ${{ inputs.training_run }}
+          github-token: ${{ github.token }}
+          pattern: jam-blueprints-seed*
+          path: blueprints
+      - name: Attach actual cumulative regret and current policy to measured EV
+        run: |
+          for seed in 42 73 101; do
+            for length in 30 60 120; do
+              python3 tools/inspect_blueprint.py blueprints/jam-blueprints-seed${seed}/${length}m-blueprint.bin runs/jam-final-seed${seed}/${length}m-ev.json
+            done
+          done
       - name: Generate and verify exact strategy
         run: |
           python3 -m py_compile tools/*.py

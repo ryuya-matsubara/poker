@@ -35,6 +35,7 @@ vm.runInNewContext(script, context);
   const openShove = policy.min_allin_depth === 0;
   const rootRaises = policy.bet_sizes_half_bb[0];
   assert.equal(handBucket([{r:12,s:'♠'},{r:5,s:'♥'}]), 139, 'Q5o canonical bucket');
+  assert.equal(handBucket([{r:14,s:'♠'},{r:12,s:'♥'}]), 167, 'AQo canonical bucket');
   newGame();
   const game = getGame();
   assert.equal(game.actor, 3, 'UTG acts first');
