@@ -1,253 +1,157 @@
-//! Joint external-sampling CFR over a bounded three-street continuation.
-//! Each street allows check, 1/3-pot, 3/4-pot, or shove, then call/fold.
-//! There are no postflop raises. Public texture and private made/draw features
-//! are abstracted. This is an imperfect-recall approximation, not full NLHE.
-//! No fixed position transfer or prescribed hand opening ranges are used.
-use super::{PreflopState, PreflopTrainer, RegretEntry, NUM_PLAYERS};
-use crate::card::{rank, suit, Card, Hand};
-use crate::eval::{evaluate, HandRank};
+//! Bounded NLHE continuation. Signed external-sampling regrets and
+//! importance-corrected, own-reach-weighted averaging; no payoff bonuses.
+use super::{PreflopState,PreflopTrainer,PreflopAction,PreflopInfoKey,RegretEntry,NUM_PLAYERS};
+use crate::card::{rank,suit,Card,Hand};
+use crate::iso::canonical_hand;
 use rand::Rng;
-
-const ORDER: [usize; NUM_PLAYERS] = [4,5,0,1,2,3];
-
-#[derive(Clone, Copy, Hash, Eq, PartialEq)]
-pub(super) struct InfoKey(pub u64);
-
+use std::hash::{Hash,Hasher};
+use std::collections::hash_map::DefaultHasher;
+const ORDER:[usize;6]=[4,5,0,1,2,3];
+#[derive(Clone,Copy,Hash,Eq,PartialEq)]
+pub(super) struct InfoKey(pub u128);
 #[derive(Clone)]
-struct Node {
-    state: PreflopState,
-    board: Hand,
-    runout: [Card; 5],
-    street: usize,
-    checked: u8,
-    pending: u8,
-    bettor: Option<usize>,
-    target: i32,
-    bet_kind: u8,
-    previous: u8,
+struct Node {state:PreflopState,board:Hand,runout:[Card;5],street:usize,paid:[i32;6],pending:u8,acted:u8,bettor:Option<usize>,target:i32,last_raise:i32,raises:u8,history:u64,prehistory:u64}
+#[derive(Clone,Copy)]
+struct Reach {own:f64,q:f64,cf:f64}
+impl Reach {fn root()->Self {Self{own:1.,q:1.,cf:1.}}}
+fn mode()->&'static str {static MODE:std::sync::OnceLock<String>=std::sync::OnceLock::new();MODE.get_or_init(||std::env::var("POKER_MODEL").unwrap_or_else(|_|"full".into())).as_str()}
+fn rich()->bool {matches!(mode(),"rich"|"full"|"chance"|"sizes")}
+fn raises()->bool {matches!(mode(),"raises"|"full"|"chance"|"sizes")}
+fn actionable(s:&PreflopState)->u8 {(0..6).filter(|&p|!s.folded[p]&&!s.all_in[p]).fold(0,|m,p|m|1<<p)}
+fn wager(s:&mut PreflopState,p:usize,n:i32)->i32 {let n=n.max(0).min(s.stacks[p]);s.stacks[p]-=n;s.bets[p]+=n;s.all_in[p]=s.stacks[p]==0;n}
+fn actor(n:&Node)->usize {let start=n.bettor.map(|p|(ORDER.iter().position(|&q|q==p).unwrap()+1)%6).unwrap_or(0);(0..6).map(|i|ORDER[(start+i)%6]).find(|&p|n.pending&(1<<p)!=0).unwrap()}
+fn actions(n:&Node,p:usize)->Vec<i32> {
+ let stack=n.state.stacks[p];let cap=n.paid[p]+stack;let call=(n.target-n.paid[p]).max(0);
+ if call>0 {
+  let mut a=vec![-1,n.target.min(cap)];
+  if raises()&&n.raises<1&&n.acted&(1<<p)==0&&stack>call {
+   let r=(n.target*3).max(n.target+n.last_raise).min(cap);
+   if r<cap {a.push(r);} if cap>n.target {a.push(cap);}
+  } a
+ } else {
+  let pot:i32=n.state.bets.iter().sum();let mut a=vec![n.paid[p]];
+  for x in [(pot+1)/3,(pot*3+2)/4,stack] {let v=n.paid[p]+x.max(2).min(stack);if !a.contains(&v){a.push(v);}}a
+ }
+}
+fn apply(n:&Node,p:usize,a:i32,index:usize)->Node {
+ let mut c=n.clone();c.pending&=!(1<<p);c.acted|=1<<p;c.history=c.history.wrapping_mul(37).wrapping_add((p*5+index+1) as u64);
+ if a<0 {c.state.folded[p]=true;return c;}
+ let add=(a-c.paid[p]).max(0);let paid=wager(&mut c.state,p,add);c.paid[p]+=paid;
+ if c.paid[p]>n.target {
+  let increment=c.paid[p]-n.target;let full=increment>=n.last_raise;
+  c.bettor=Some(p);c.target=c.paid[p];if n.target>0 {c.raises+=1;}
+  if full {c.last_raise=increment;c.acted=1<<p;}
+  c.pending=actionable(&c.state)&!(1<<p);
+ }c
+}
+fn hash<T:Hash>(x:&T)->u64 {let mut h=DefaultHasher::new();x.hash(&mut h);h.finish()}
+fn key(n:&Node,p:usize,a:&[i32])->InfoKey {
+ let legacy=super::continuation_legacy::visible_features(n.state.holes[p],n.board,n.street);
+ if !rich() {return InfoKey(hash(&(legacy,p,n.street,actionable(&n.state),n.target,n.raises,n.history,n.state.n_raises)) as u128);}
+ let hole:Vec<_>=n.state.holes[p].iter().collect();let hi=hole.iter().map(|&c|rank(c)).max().unwrap();let lo=hole.iter().map(|&c|rank(c)).min().unwrap();
+ let mut br=Vec::new();let mut suits=[0u8;4];let mut mask=0u16;for c in n.board.iter(){br.push(rank(c));suits[suit(c) as usize]+=1;mask|=1<<rank(c);}br.sort();
+ let over=hole.iter().filter(|&&c|rank(c)>*br.last().unwrap()).count() as u8;
+ let own_suits:Vec<u8>=hole.iter().map(|&c|suit(c)).collect();let mut full_suits=suits;for &s in &own_suits{full_suits[s as usize]+=1;}
+ let flush=own_suits.iter().map(|&s|full_suits[s as usize]).max().unwrap();
+ let nut=hole.iter().any(|&c|rank(c)==12&&suits[suit(c) as usize]>=2);
+ let near=hole.iter().any(|&c|rank(c)==11&&suits[suit(c) as usize]>=2);
+ for &c in &hole {mask|=1<<rank(c);}let wheel=(mask<<1)|((mask>>12)&1);
+ let straight=(0..=9).map(|i|((wheel>>i)&31).count_ones()).max().unwrap() as u8;
+ let pot:i32=n.state.bets.iter().sum();let call=(n.target-n.paid[p]).max(0);
+ let effective=(0..6).filter(|&i|i!=p&&!n.state.folded[i]).map(|i|n.state.stacks[i]+n.paid[i]).max().unwrap_or(0).min(n.state.stacks[p]+n.paid[p]);
+ // Private identity is 169 rank/suited classes, not 1326 suit-labelled combos.
+ // Public board ranks and suit topology are bucketed; exact money/history are retained.
+ let private=(canonical_hand(hole[0],hole[1]).index(),legacy,over,hi,lo,flush,straight,nut,near);
+ let public=(br.last().unwrap()/3,br[br.len()/2]/3,br[0]/3,suits.iter().max().copied().unwrap(),br.windows(2).any(|w|w[0]==w[1]));
+ let money=(pot,n.state.stacks,n.paid,call,effective,a);
+ InfoKey((hash(&(private,public)) as u128)<<64|hash(&(p,n.street,actionable(&n.state),n.state.folded,n.state.last_aggressor,n.prehistory,n.history,money)) as u128)
+}
+fn terminal(n:&Node,t:u8)->f32 {if n.state.active_count()==1 {let w=(0..6).find(|&p|!n.state.folded[p]).unwrap();n.state.payoff_fold(w as u8)[t as usize]}else{n.state.payoff_showdown(n.runout.iter().fold(Hand::new(),|h,&c|h.add(c)))[t as usize]}}
+fn update(e:&mut RegretEntry,s:&[f32],v:&[f32],value:f32,r:Reach,weight:f64) {
+ for a in 0..s.len(){e.regrets[a]+=(r.cf*(v[a]-value) as f64) as f32;e.cum_strategy[a]+=(weight*r.own/r.q*s[a] as f64) as f32;}
+}
+fn cfr(t:&mut PreflopTrainer,n:&Node,tr:u8,r:Reach,learn:bool)->f32 {
+ if n.state.folded[tr as usize]{return -(n.state.bets[tr as usize] as f32);}
+ if n.state.active_count()==1{return terminal(n,tr);}
+ if n.pending==0 || actionable(&n.state).count_ones()<2&&n.target==0 {
+  if n.street==5||actionable(&n.state).count_ones()<2{return terminal(n,tr);}
+  let mut c=n.clone();c.street+=1;c.board=c.board.add(c.runout[c.street-1]);c.paid=[0;6];c.target=0;c.last_raise=2;c.raises=0;c.acted=0;c.bettor=None;c.pending=actionable(&c.state);return cfr(t,&c,tr,r,learn);
+ }
+ let p=actor(n);let a=actions(n,p);let k=key(n,p,&a);
+ let s=t.postflop.get(&k).map(|e|if learn{e.current_strategy()}else{e.average_strategy()}).unwrap_or_else(||vec![1./a.len() as f32;a.len()]);
+ if p==tr as usize&&learn {
+  let shared=t.rng.clone();let mut v=Vec::new();for (i,&x) in a.iter().enumerate(){t.rng=shared.clone();v.push(cfr(t,&apply(n,p,x,i),tr,Reach{own:r.own*s[i] as f64,..r},true));}
+  let value=v.iter().zip(&s).map(|(x,p)|x*p).sum();let w=t.blueprint.iterations as f64+1.;let e=t.postflop.entry(k).or_insert_with(||RegretEntry::new(a.len()));update(e,&s,&v,value,r,w);value
+ } else {
+  let epsilon=if learn{0.05}else{0.};let q:Vec<_>=s.iter().map(|&x|(1.-epsilon)*x+epsilon/a.len() as f32).collect();let i=sample(&q,&mut t.rng);
+  let ratio=s[i] as f64/q[i] as f64;let next=if learn{Reach{q:r.q*q[i] as f64,cf:r.cf*ratio,..r}}else{r};cfr(t,&apply(n,p,a[i],i),tr,next,learn)*ratio as f32
+ }
+}
+fn sample<R:Rng>(s:&[f32],rng:&mut R)->usize {let u=rng.gen::<f32>();let mut c=0.;s.iter().position(|&p|{c+=p;u<c}).unwrap_or(s.len()-1)}
+fn node(s:&PreflopState,runout:[Card;5],history:&[u8])->Node {Node{state:s.clone(),board:runout[..3].iter().fold(Hand::new(),|h,&c|h.add(c)),runout,street:3,paid:[0;6],pending:actionable(s),acted:0,bettor:None,target:0,last_raise:2,raises:0,history:0,prehistory:hash(&history)}}
+fn leaf(t:&mut PreflopTrainer,s:&PreflopState,tr:u8,h:&[u8],r:Reach,learn:bool)->f32 {
+ if mode()=="raw"{return s.payoff_showdown(t.shared_runout.iter().fold(Hand::new(),|b,&c|b.add(c)))[tr as usize];}
+ if mode()=="legacy"||mode()=="nojam" {return super::continuation_legacy::evaluate_policy(t,s,tr);}
+ cfr(t,&node(s,t.shared_runout,h),tr,r,learn)
+}
+fn pre(t:&mut PreflopTrainer,s:&PreflopState,tr:u8,h:&mut Vec<u8>,r:Reach,learn:bool)->f32 {
+ match s.node_type(){super::PreflopNodeType::TerminalFold(w)=>s.payoff_fold(w)[tr as usize],super::PreflopNodeType::TerminalShowdown=>leaf(t,s,tr,h,r,learn),super::PreflopNodeType::Decision(p)=>{
+ let a=s.actions();let cards:Vec<_>=s.holes[p as usize].iter().collect();let k=PreflopInfoKey{bucket:canonical_hand(cards[0],cards[1]).index(),history:h.clone()};let strat=t.blueprint.entries.get(&k).map(|e|if learn{e.current_strategy()}else{e.average_strategy()}).unwrap_or_else(||vec![1./a.len() as f32;a.len()]);
+ if p==tr&&learn {let shared=t.rng.clone();let mut values=vec![0.;a.len()];for (i,&x) in a.iter().enumerate(){t.rng=shared.clone();h.push(i as u8);values[i]=pre(t,&s.apply(x),tr,h,Reach{own:r.own*strat[i] as f64,..r},true);h.pop();}let value=values.iter().zip(&strat).map(|(v,p)|v*p).sum();let w=t.blueprint.iterations as f64+1.;update(t.blueprint.entries.entry(k).or_insert_with(||RegretEntry::new(a.len())),&strat,&values,value,r,w);value}
+ else {let epsilon=if learn{0.05}else{0.};let q:Vec<_>=strat.iter().map(|&x|(1.-epsilon)*x+epsilon/a.len() as f32).collect();let i=sample(&q,&mut t.rng);h.push(i as u8);let ratio=strat[i] as f64/q[i] as f64;let v=pre(t,&s.apply(a[i]),tr,h,if learn{Reach{q:r.q*q[i] as f64,cf:r.cf*ratio,..r}}else{r},learn);h.pop();v*ratio as f32}
+ } }
+}
+pub(super) fn train(t:&mut PreflopTrainer,s:&PreflopState,tr:u8,h:&mut Vec<u8>)->f32 {pre(t,s,tr,h,Reach::root(),true)}
+// Frozen policy evaluation. Deals are conditioned on ALL earlier public actions,
+// not a uniform UTG range. Each action reuses the deal, board and RNG seed.
+pub(super) fn diagnose(t:&mut PreflopTrainer,path:&str,samples:usize) {
+ use rand::SeedableRng;use rand::rngs::SmallRng;use serde_json::json;
+ let mut out=Vec::new();
+ for (spot,label) in [("BTN RFI","AQo"),("BTN RFI","AA"),("BTN RFI","A5s"),("BTN RFI","22"),("BTN RFI","Q5o"),("UTG 2BB -> BTN","53s"),("UTG 2BB -> BTN","AQo")] {
+  let mut rng=SmallRng::seed_from_u64(9127);let bucket=(0..169u8).find(|&i|crate::iso::CanonicalHand::from_index(i).to_string()==label).unwrap();let mut sums=Vec::<f64>::new();let mut squares=Vec::<f64>::new();let mut names=Vec::new();let mut probabilities=Vec::new();let mut gap_sum=0.;let mut gap_sq=0.;let mut accepted=0;let mut attempts=0;
+  while accepted<samples&&attempts<samples*20000 {attempts+=1;t.rng=rng.clone();let holes=t.deal_holes();rng=t.rng.clone();let hc:Vec<_>=holes[3].iter().collect();if canonical_hand(hc[0],hc[1]).index()!=bucket{continue;}
+   let mut s=PreflopState::new_6max(t.blueprint.config.clone());s.holes=holes;let prefix=if spot=="BTN RFI"{vec![0,0,0]}else{vec![1,0,0]};let mut h=Vec::new();let mut ok=true;
+   for &idx in &prefix {let p=s.to_act;let cs:Vec<_>=s.holes[p as usize].iter().collect();let k=PreflopInfoKey{bucket:canonical_hand(cs[0],cs[1]).index(),history:h.clone()};let a=s.actions();let st=t.blueprint.entries.get(&k).map(|e|e.average_strategy()).unwrap_or_else(||vec![1./a.len() as f32;a.len()]);if rng.gen::<f32>()>st[idx]{ok=false;break;}s=s.apply(a[idx]);h.push(idx as u8);}if !ok{continue;}
+   let mut dead=holes.iter().fold(Hand::new(),|d,&x|d.union(x));for i in 0..5 {loop{let c=rng.gen_range(0..52);if !dead.contains(c){t.shared_runout[i]=c;dead=dead.add(c);break;}}}
+   let a=s.actions();if sums.is_empty(){sums=vec![0.;a.len()];squares=sums.clone();names=a.iter().map(|x|x.to_string()).collect();let k=PreflopInfoKey{bucket,history:h.clone()};probabilities=t.blueprint.entries.get(&k).map(|e|e.average_strategy()).unwrap_or_else(||vec![1./a.len() as f32;a.len()]);}
+   let common=rng.clone();let mut vv=Vec::new();for(i,&x)in a.iter().enumerate(){t.rng=common.clone();h.push(i as u8);let v=pre(t,&s.apply(x),3,&mut h,Reach::root(),false) as f64/2.;h.pop();sums[i]+=v;squares[i]+=v*v;vv.push(v);}let jam=vv[vv.len()-1];let small=vv.iter().skip(1).take(vv.len()-2).copied().fold(f64::NEG_INFINITY,f64::max);let gap=jam-small;gap_sum+=gap;gap_sq+=gap*gap;accepted+=1;
+  }
+  let n=accepted as f64;let se=|sum:f64,sq:f64|((sq-sum*sum/n)/(n-1.)/n).max(0.).sqrt();let rows:Vec<_>=(0..sums.len()).map(|i|{let mean=sums[i]/n;let err=se(sums[i],squares[i]);json!({"action":names[i],"probability":probabilities[i],"mean_bb":mean,"se_bb":err,"ci95_bb":[mean-1.96*err,mean+1.96*err],"samples":accepted})}).collect();out.push(json!({"spot":spot,"hand":label,"actions":rows,"jam_minus_best_small_per_deal_bb":gap_sum/n,"paired_se_bb":se(gap_sum,gap_sq),"attempts":attempts}));
+ }
+ std::fs::write(path,serde_json::to_string_pretty(&out).unwrap()).unwrap();
 }
 
-fn actionable(state: &PreflopState) -> u8 {
-    (0..NUM_PLAYERS).filter(|&p| !state.folded[p] && !state.all_in[p])
-        .fold(0, |mask,p| mask | (1<<p))
-}
-
-fn wager(state: &mut PreflopState, p: usize, amount: i32) {
-    let paid = amount.max(0).min(state.stacks[p]);
-    state.stacks[p] -= paid;
-    state.bets[p] += paid;
-    state.all_in[p] = state.stacks[p] == 0;
-}
-
-fn actor(node: &Node) -> usize {
-    let start=node.bettor.map(|p|(ORDER.iter().position(|&i|i==p).unwrap()+1)%6).unwrap_or(0);
-    (0..6).map(|i|ORDER[(start+i)%6]).find(|&p|node.pending&(1<<p)!=0).unwrap()
-}
-
-fn amounts(pot: i32,stack: i32) -> Vec<i32> {
-    let mut v=vec![0];
-    for x in [(pot as f32/3.0).round() as i32,(pot as f32*0.75).round() as i32,stack] {
-        let x=x.max(2).min(stack); // NLHE minimum bet = one BB, unless all-in.
-        if !v.contains(&x) {v.push(x);}
-    }
-    v
-}
-
-/// Features use only the acting player's cards and the current public board.
-fn features(hole: Hand, board: Hand, street: usize) -> (u8,u8,u8) {
-    let mut br = [0u8;13];
-    let mut full = [0u8;13];
-    let mut suits = [0u8;4];
-    let mut mask = 0u16;
-    for c in board.iter() { br[rank(c) as usize]+=1; }
-    full.copy_from_slice(&br);
-    for c in hole.union(board).iter() {
-        suits[suit(c) as usize]+=1;
-        mask |= 1<<rank(c);
-    }
-    for c in hole.iter() { full[rank(c) as usize]+=1; }
-    let cards: Vec<Card> = hole.iter().collect();
-    let hi = cards.iter().map(|&c| rank(c)).max().unwrap();
-    let lo = cards.iter().map(|&c| rank(c)).min().unwrap();
-    let bh = board.iter().map(rank).max().unwrap();
-    let private_pair = hi==lo;
-    let paired_rank = (0..13).rev().find(|&r| full[r]>=2 && br[r]<full[r]);
-    let made = match evaluate(hole.union(board)).hand_rank() {
-        HandRank::StraightFlush => 15,
-        HandRank::FourOfAKind => if br.iter().any(|&n| n==4) { 2 } else {14},
-        HandRank::FullHouse => 13,
-        HandRank::Flush => 12,
-        HandRank::Straight => 11,
-        HandRank::ThreeOfAKind => if br.iter().any(|&n| n==3) {2} else {10},
-        HandRank::TwoPair => {
-            if private_pair && br.iter().any(|&n|n>=2) {
-                if hi>bh {8} else {4}
-            } else if cards.iter().filter(|&&c|br[rank(c) as usize]>0).count()==2 {9}
-            else if let Some(r)=paired_rank {if r as u8>=bh {7}else{5}} else {2}
-        },
-        HandRank::OnePair => if let Some(r)=paired_rank {
-            if private_pair && hi>bh {8}
-            else if r as u8 == bh {
-                let kicker=cards.iter().map(|&c|rank(c)).filter(|&r2|r2!=r as u8).max().unwrap_or(0);
-                if kicker>=10 {7}else{6}
-            }
-            else if private_pair {3} else {4}
-        } else {2},
-        HandRank::HighCard => if hi==12 {1}else{0},
-    };
-    let mut draw=0;
-    if street<5 {
-        let flush = hole.iter().any(|c|suits[suit(c) as usize]==4);
-        let wheel=(mask<<1)|((mask>>12)&1);
-        let straight=(0..=9).any(|low|((wheel>>low)&31).count_ones()>=4);
-        draw=match (flush,straight) {(false,false)=>0,(false,true)=>1,(true,false)=>2,_=>3};
-    }
-    let paired=br.iter().any(|&n|n>=2);
-    let max_suit=board.iter().fold([0u8;4],|mut a,c|{a[suit(c) as usize]+=1;a}).into_iter().max().unwrap();
-    let texture=(paired as u8)*2+(max_suit>=3) as u8;
-    (made,draw,texture)
-}
-
-fn key(node: &Node,p: usize,n: usize) -> InfoKey {
-    let (made,draw,texture)=features(node.state.holes[p],node.board,node.street);
-    let active=(0..NUM_PLAYERS).filter(|&i|!node.state.folded[i]).fold(0u8,|m,i|m|(1<<i));
-    let pot: i32=node.state.bets.iter().sum();
-    let spr=node.state.stacks[p] as f32/pot.max(1) as f32;
-    let spr_bucket=if spr<0.5 {0}else if spr<1.0 {1}else if spr<2.0 {2}else if spr<4.0 {3}else{4};
-    let mut value=made as u64;
-    let fields=[(draw as u64,2),(texture as u64,2),(p as u64,3),
-        ((node.street-3) as u64,2),(active as u64,6),(node.checked as u64,6),
-        (node.bet_kind as u64,2),(node.bettor.unwrap_or(6) as u64,3),
-        (node.state.n_raises.min(3) as u64,2),(spr_bucket,3),
-        (node.state.last_aggressor.unwrap_or(6) as u64,3),
-        (node.previous as u64,4),(n as u64,3)];
-    let mut shift=4;
-    for (field,bits) in fields {value|=field<<shift;shift+=bits;}
-    InfoKey(value)
-}
-
-fn terminal(node: &Node,t: u8) -> f32 {
-    if node.state.active_count()==1 {
-        let winner=(0..NUM_PLAYERS).find(|&p|!node.state.folded[p]).unwrap();
-        node.state.payoff_fold(winner as u8)[t as usize]
-    } else {
-        let board=node.runout.iter().fold(Hand::new(),|h,&c|h.add(c));
-        node.state.payoff_showdown(board)[t as usize]
-    }
-}
-
-fn cfr(trainer: &mut PreflopTrainer,node: &Node,t: u8) -> f32 {
-    if node.state.folded[t as usize] {return -(node.state.bets[t as usize] as f32);}
-    if node.state.active_count()<=1 {return terminal(node,t);}
-    if node.pending==0 || actionable(&node.state).count_ones()<2 && node.bettor.is_none() {
-        if node.street==5 || actionable(&node.state).count_ones()<2 {return terminal(node,t);}
-        let mut next=node.clone();
-        next.street+=1;
-        next.board=next.board.add(next.runout[next.street-1]);
-        next.previous=((node.previous<<2)|node.bet_kind)&15;
-        next.checked=0;next.bettor=None;next.target=0;next.bet_kind=0;
-        next.pending=actionable(&next.state);
-        return cfr(trainer,&next,t);
-    }
-    let p=actor(node);
-    let pot: i32=node.state.bets.iter().sum();
-    // 0 means check/fold; facing a bet, 1 means call.
-    let actions: Vec<i32>=if node.bettor.is_some() {vec![0,node.target]}
-        else {amounts(pot,node.state.stacks[p])};
-    let k=key(node,p,actions.len());
-    let strategy=trainer.postflop.entry(k).or_insert_with(||RegretEntry::new(actions.len())).current_strategy();
-    let apply=|a:usize| {
-        let mut child=node.clone();
-        child.pending&=!(1<<p);
-        if node.bettor.is_some() {
-            if a==0 {child.state.folded[p]=true;}
-            else {wager(&mut child.state,p,node.target);}
-        } else if a==0 {child.checked|=1<<p;}
-        else {
-            wager(&mut child.state,p,actions[a]);
-            child.bettor=Some(p);child.target=actions[a];
-            child.bet_kind=if actions[a]==node.state.stacks[p] {3}else if a==1 {1}else{2};
-            child.pending=actionable(&child.state)&!(1<<p);
-        }
-        child
-    };
-    if p==t as usize {
-        let values:Vec<f32>=(0..actions.len()).map(|a|cfr(trainer,&apply(a),t)).collect();
-        let value: f32=values.iter().zip(&strategy).map(|(v,s)|v*s).sum();
-        let weight=trainer.blueprint.iterations as f32+1.0;
-        let entry=trainer.postflop.get_mut(&k).unwrap();
-        for a in 0..actions.len() {
-            entry.regrets[a]=(entry.regrets[a]+values[a]-value).max(0.0);
-            entry.cum_strategy[a]+=weight*strategy[a];
-        }
-        value
-    } else {
-        let roll=trainer.rng.gen::<f32>();
-        let mut sum=0.0;
-        let a=strategy.iter().position(|s|{sum+=s;roll<sum}).unwrap_or(actions.len()-1);
-        cfr(trainer,&apply(a),t)
-    }
-}
-
-pub(super) fn terminal_value(trainer: &mut PreflopTrainer,state: &PreflopState,t: u8) -> f32 {
-    if state.folded[t as usize] {return -(state.bets[t as usize] as f32);}
-    let mut dead=state.holes.iter().fold(Hand::new(),|h,&hole|h.union(hole));
-    let mut runout=[0;5];
-    for c in &mut runout {*c=trainer.draw_excluding(dead);dead=dead.add(*c);}
-    let board=runout[..3].iter().fold(Hand::new(),|h,&c|h.add(c));
-    let node=Node{state:state.clone(),board,runout,street:3,checked:0,
-        pending:actionable(state),bettor:None,target:0,bet_kind:0,previous:0};
-    cfr(trainer,&node,t)
-}
+pub(super) fn terminal_value(t:&mut PreflopTrainer,s:&PreflopState,tr:u8)->f32 {if mode()=="raw" {s.payoff_showdown(t.shared_runout.iter().fold(Hand::new(),|h,&c|h.add(c)))[tr as usize]}else{super::continuation_legacy::terminal_value(t,s,tr)}}
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use crate::card::card;
-    use crate::preflop::PreflopBetConfig;
-    #[test]
-    fn features_only_use_visible_cards() {
-        let hole=Hand::new().add(card(10,3)).add(card(3,3));
-        let flop=Hand::new().add(card(0,3)).add(card(4,3)).add(card(9,1));
-        let river=flop.add(card(12,3)).add(card(1,0));
-        assert_ne!(features(hole,flop,3),features(hole,river,5));
-    }
-    #[test]
-    fn top_pair_kicker_is_not_the_paired_card() {
-        let flop=Hand::new().add(card(12,0)).add(card(5,1)).add(card(2,2));
-        let weak=Hand::new().add(card(12,3)).add(card(0,3));
-        let strong=Hand::new().add(card(12,3)).add(card(11,3));
-        assert_eq!(features(weak,flop,3).0,6);
-        assert_eq!(features(strong,flop,3).0,7);
-    }
-    #[test]
-    fn minimum_bet_and_allin_exception() {
-        assert_eq!(amounts(4,40),vec![0,2,3,40]);
-        assert_eq!(amounts(4,1),vec![0,1]);
-    }
-    #[test]
-    fn multiway_responses_start_after_bettor() {
-        let mut node=Node{state:PreflopState::new_6max(PreflopBetConfig::default()),
-            board:Hand::new(),runout:[0;5],street:3,checked:0,
-            pending:(1<<3)|(1<<4)|(1<<5),bettor:Some(2),target:4,bet_kind:1,previous:0};
-        assert_eq!(actor(&node),3); // BTN follows CO, before SB and BB.
-        node.pending&=!(1<<3);
-        assert_eq!(actor(&node),4);
-    }
-    #[test]
-    fn check_call_and_fold_preserve_zero_sum() {
-        let mut trainer=PreflopTrainer::new(PreflopBetConfig::default(),7);
-        let mut state=PreflopState::new_6max(PreflopBetConfig::default());
-        let mut dead=Hand::new();
-        for p in 0..6 {
-            let a=trainer.draw_excluding(dead);dead=dead.add(a);
-            let b=trainer.draw_excluding(dead);dead=dead.add(b);
-            state.holes[p]=Hand::new().add(a).add(b);
-        }
-        let mut board=Hand::new();
-        for _ in 0..5 {let c=trainer.draw_excluding(dead);dead=dead.add(c);board=board.add(c);}
-        wager(&mut state,0,10);wager(&mut state,1,10);
-        state.folded[2]=true;
-        assert!(state.payoff_showdown(board).iter().sum::<f32>().abs()<0.001);
-    }
+ use super::*;use crate::card::card;use super::super::PreflopBetConfig;
+ #[test] fn signed_regrets_and_average_reach() {
+  let mut e=RegretEntry::new(2);update(&mut e,&[0.5,0.5],&[-2.,2.],0.,Reach{own:0.2,q:0.5,cf:0.25},10.);
+  assert_eq!(e.regrets,vec![-0.5,0.5]);assert_eq!(e.cum_strategy,vec![2.,2.]);assert_eq!(e.current_strategy(),vec![0.,1.]);
+ }
+ #[test] fn importance_sampling_preserves_expectation() {
+  let pi=[0.8,0.2];let q=[0.6,0.4];let u=[-4.,6.];let expected:f64=(0..2).map(|i|q[i]*(pi[i]/q[i])*u[i]).sum();assert!((expected+2.).abs()<1e-9);
+ }
+ #[test] fn richer_private_identity_separates_merged_high_cards() {
+  let mut s=PreflopState::new_6max(PreflopBetConfig::default());s.holes[0]=Hand::new().add(card(11,0)).add(card(10,1));
+  let mut n=node(&s,[card(7,0),card(4,1),card(0,2),card(1,3),card(2,0)],&[1,0,0]);let weak=Hand::new().add(card(5,2)).add(card(1,1));
+  assert_eq!(super::super::continuation_legacy::visible_features(s.holes[0],n.board,3).0,super::super::continuation_legacy::visible_features(weak,n.board,3).0);
+  if rich(){let a=actions(&n,0);let k=key(&n,0,&a);n.state.holes[0]=weak;assert!(key(&n,0,&a)!=k);}
+ }
+ #[test] fn randomized_terminal_conservation() {
+  let mut t=PreflopTrainer::new(PreflopBetConfig{raise_sizes:vec![vec![4,5],vec![14],vec![28]],sb_limp:true,sb_open_size:Some(6),min_allin_depth:0},81);
+  for _ in 0..10000 {
+   let mut s=PreflopState::new_6max(t.blueprint.config.clone());s.holes=t.deal_holes();let mut dead=s.holes.iter().fold(Hand::new(),|h,&x|h.union(x));let mut runout=[0;5];for c in &mut runout{*c=t.draw_excluding(dead);dead=dead.add(*c);}
+   for _ in 0..80 {match s.node_type(){super::super::PreflopNodeType::Decision(_)=>{let a=s.actions();s=s.apply(a[t.rng.gen_range(0..a.len())]);},_=>break}}
+   let v=if let super::super::PreflopNodeType::TerminalFold(w)=s.node_type(){s.payoff_fold(w)}else{s.payoff_showdown(runout.iter().fold(Hand::new(),|h,&c|h.add(c)))};
+   assert!(v.iter().sum::<f32>().abs()<0.0001);assert!(s.stacks.iter().all(|&x|x>=0));assert!((0..6).all(|p|s.stacks[p]+s.bets[p]==40));
+   let mut n=node(&s,runout,&[]);for _ in 0..100 {if n.state.active_count()<2||actionable(&n.state).count_ones()<2{break;}if n.pending==0 {if n.street==5 {break;}n.street+=1;n.board=n.board.add(runout[n.street-1]);n.paid=[0;6];n.target=0;n.last_raise=2;n.raises=0;n.acted=0;n.bettor=None;n.pending=actionable(&n.state);continue;}let p=actor(&n);let a=actions(&n,p);let i=t.rng.gen_range(0..a.len());n=apply(&n,p,a[i],i);}
+   let v=if n.state.active_count()==1 {n.state.payoff_fold((0..6).find(|&p|!n.state.folded[p]).unwrap() as u8)}else{n.state.payoff_showdown(runout.iter().fold(Hand::new(),|h,&c|h.add(c)))};assert!(v.iter().sum::<f32>().abs()<0.0001);assert!((0..6).all(|p|n.state.stacks[p]+n.state.bets[p]==40));
+  }
+ }
+ #[test] fn raises_account_for_money_already_paid() {
+  let mut s=PreflopState::new_6max(PreflopBetConfig::default());s.bets=[4,4,0,0,1,2];s.stacks=[36,36,40,40,39,38];s.folded=[false,false,true,true,true,true];
+  let n=node(&s,[0,1,2,3,4],&[]);let a=apply(&n,0,6,1);let b=apply(&a,1,18,2);let c=apply(&b,0,18,1);assert_eq!(c.paid[0],18);assert_eq!(c.state.bets[0],22);assert_eq!(c.state.stacks[0],18);
+ }
 }
