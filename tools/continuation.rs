@@ -10,12 +10,16 @@ use std::collections::hash_map::DefaultHasher;
 const ORDER:[usize;6]=[4,5,0,1,2,3];
 #[derive(Clone,Copy,Hash,Eq,PartialEq)]
 pub(super) struct InfoKey(pub u128);
-pub(super) struct PostEntry {pub regrets:[f32;4],pub cum_strategy:[f32;4],n:usize}
+pub(super) struct PostEntry {pub regrets:[f32;4],pub cum_strategy:[f32;4]}
 impl PostEntry {
- pub(super) fn new(n:usize)->Self {assert!(n<=4);Self{regrets:[0.;4],cum_strategy:[0.;4],n}}
- pub(super) fn current_strategy(&self)->Vec<f32> {let total:f32=self.regrets[..self.n].iter().map(|x|x.max(0.)).sum();if total>0. {self.regrets[..self.n].iter().map(|x|x.max(0.)/total).collect()}else{vec![1./self.n as f32;self.n]}}
- pub(super) fn average_strategy(&self)->Vec<f32> {let total:f32=self.cum_strategy[..self.n].iter().sum();if total>0. {self.cum_strategy[..self.n].iter().map(|x|x/total).collect()}else{vec![1./self.n as f32;self.n]}}
+ // Unused slots have cumulative mass -1; learned slots are always nonnegative.
+ // This stores action count without padding the 32-byte entry to 40 bytes.
+ pub(super) fn new(n:usize)->Self {assert!(n<=4);let mut cum=[-1.;4];cum[..n].fill(0.);Self{regrets:[0.;4],cum_strategy:cum}}
+ fn n(&self)->usize {self.cum_strategy.iter().position(|&v|v<0.).unwrap_or(4)}
+ pub(super) fn current_strategy(&self)->Vec<f32> {let n=self.n();let total:f32=self.regrets[..n].iter().map(|x|x.max(0.)).sum();if total>0. {self.regrets[..n].iter().map(|x|x.max(0.)/total).collect()}else{vec![1./n as f32;n]}}
+ pub(super) fn average_strategy(&self)->Vec<f32> {let n=self.n();let total:f32=self.cum_strategy[..n].iter().sum();if total>0. {self.cum_strategy[..n].iter().map(|x|x/total).collect()}else{vec![1./n as f32;n]}}
 }
+
 trait Entry {fn add(&mut self,a:usize,regret:f32,average:f32);}
 impl Entry for RegretEntry {fn add(&mut self,a:usize,r:f32,s:f32){self.regrets[a]+=r;self.cum_strategy[a]+=s;}}
 impl Entry for PostEntry {fn add(&mut self,a:usize,r:f32,s:f32){self.regrets[a]+=r;self.cum_strategy[a]+=s;}}
@@ -69,12 +73,8 @@ fn key(n:&Node,p:usize,a:&[i32])->InfoKey {
  let straight=(0..=9).map(|i|((wheel>>i)&31).count_ones()).max().unwrap() as u8;
  let pot:i32=n.state.bets.iter().sum();let call=(n.target-n.paid[p]).max(0);
  let effective=(0..6).filter(|&i|i!=p&&!n.state.folded[i]).map(|i|n.state.stacks[i]+n.paid[i]).max().unwrap_or(0).min(n.state.stacks[p]+n.paid[p]);
- // Postflop rank bands preserve A separately, suitedness and pair rank.
- // Preflop always retains all 169 identities; postflop does not multiply every
- // made/draw/public state by an exact preflop identity (mostly singleton keys).
- // Public boards and money use explicit buckets. Bet legality/payoff stay exact.
- let ranks=if hi==lo{(hi+16,lo+16)}else{(hi/3,lo/3)};
- let private=(legacy,over,ranks,suit(hole[0])==suit(hole[1]),flush,straight,nut,near);
+ // Private ranks/suitedness retain all 169 identities. Public states are bucketed.
+ let private=(canonical_hand(hole[0],hole[1]).index(),legacy,over,hi,lo,flush,straight,nut,near);
  let public=(br.last().unwrap()/3,br[br.len()/2]/3,br[0]/3,suits.iter().max().copied().unwrap(),br.windows(2).any(|w|w[0]==w[1]));
  let odds=(16*call/(pot+call).max(1)).min(15);
  let bet_fraction=(8*n.target/(pot-n.paid.iter().sum::<i32>()).max(1)).min(31);

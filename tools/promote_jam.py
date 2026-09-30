@@ -15,12 +15,12 @@ def table(headers,rows):
     return '\n'.join(['| '+' | '.join(headers)+' |','|'+'|'.join(['---']*len(headers))+'|']+['| '+' | '.join(map(str,r))+' |' for r in rows])
 
 def main():
-    p=argparse.ArgumentParser();p.add_argument('runs',type=Path);p.add_argument('ablation',type=Path);p.add_argument('--control',type=Path);args=p.parse_args()
+    p=argparse.ArgumentParser();p.add_argument('runs',type=Path);p.add_argument('ablation',type=Path);p.add_argument('--control',type=Path);p.add_argument('--training-source',required=True);args=p.parse_args()
     out=Path('analysis/jam');out.mkdir(parents=True,exist_ok=True)
     final=args.runs/'jam-final-seed42'; charts=report(final/'120m-chart.json');check_chart(charts)
     check_policy(final/'120m-policy.json',charts)
     quality={'conditions':{'players':6,'effective_stack_bb':20,'sb_bb':.5,'bb_bb':1,'ante':0,'rake':0},'model_sha256':hashlib.sha256(Path('tools/continuation.rs').read_bytes()).hexdigest(),
-             'seed_stability':{},'iteration_stability':{},'policy_deltas':{},'action_ev':{},'ablation':{},'nashconv':None,'nashconv_reason':'Conditional one-step deviations only; not a full best response or exploitability certificate.'}
+             'seed_stability':{},'iteration_stability':{},'policy_deltas':{},'action_ev':{},'ablation':{},'training_source_commit':args.training_source,'nashconv':None,'nashconv_reason':'Conditional one-step deviations only; not a full best response or exploitability certificate.'}
     for seed in [42,73,101]:
         folder=args.runs/f'jam-final-seed{seed}'
         for length in [30,60,120]:
@@ -47,6 +47,8 @@ def main():
     if args.control:
         quality['unclip_only']=ev_summary(args.control/'ev.json');shutil.copytree(args.control,out/'unclip-only',dirs_exist_ok=True)
     shutil.copy(final/'120m-chart.json','preflop_charts.json');shutil.copy(final/'120m-policy.json','preflop_policy.json')
+    release_policy=json.loads(Path('preflop_policy.json').read_text());release_policy['training_source_commit']=args.training_source
+    Path('preflop_policy.json').write_text(json.dumps(release_policy,separators=(',',':')))
     # Complete per-infoset metrics are stored separately to keep the summary usable.
     deltas=quality.pop('policy_deltas');write(out/'policy_deltas.json',deltas)
     quality['policy_delta_summary']={k:{x:v[x] for x in ['histories_left','histories_right','histories_shared','infosets','mean_l1','max_action_delta']} for k,v in deltas.items()}

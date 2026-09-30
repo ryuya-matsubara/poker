@@ -18,7 +18,7 @@
 
 計算は公開MITライセンスの [DCFR-SOLVER](https://github.com/exinori/DCFR-SOLVER) のコミット `4ade6a9e15a841c41867afde1258b9d110cd6fb1` を使用し、全員のスタックを20BBにし、固定OOP補正を廃止します。再学習ではプリフロップと限定したFlop/Turn/Riverを一緒に学習し、seed42・73・101それぞれの3,000万/6,000万/1億2,000万iterationを比較します。生成した戦略データは全ての浅い履歴と頻出の深い履歴を抽出して、このリポジトリに保存します。ゲーム中のアクションではサーバーや再学習は不要です。
 
-**学習モデル：** 各ストリートでCheck、1/3・3/4 POT Bet、All-in、Call、Fold、最大1段のRaiseを学習します。signed external-sampling MCCFRを使い、相手actionのsampling importance補正とown-reachを含む平均戦略を計算します。iteration内のpolicyは凍結します。preflopは169 identityを保持し、postflop private keyは5段階の非pair hole rank / exact pair rank / suitedness、board-relative made/draw、overcard/kicker、flush/backdoor、nut blockerを保持し、public keyはpot/各stack/SPR/pot odds/bet比、位置、betting rights、preflop pot typeをまとめます。exact public history全体と1326 suit comboは保存しません。戦略の判断には相手の非公開カードと未来ボードを使いません。固定position tax、手書きrange、hand-specific rule、頻度の事後補正はありません。
+**学習モデル：** 各ストリートでCheck、1/3・3/4 POT Bet、All-in、Call、Fold、最大1段のRaiseを学習します。signed external-sampling MCCFRを使い、相手actionのsampling importance補正とown-reachを含む平均戦略を計算します。iteration内のpolicyは凍結します。preflop/postflopとも169 rank/suited identityを保持し、postflop private keyはboard-relative made/draw、overcard/kicker、flush/backdoor、nut blockerを保持し、public keyはpot/各stack/SPR/pot odds/bet比、位置、betting rights、preflop pot typeをまとめます。exact public history全体と1326 suit comboは保存しません。戦略の判断には相手の非公開カードと未来ボードを使いません。固定position tax、手書きrange、hand-specific rule、頻度の事後補正はありません。
 
 **診断：** 凍結した平均戦略に対してBTN AQo/AA/A5s/22/Q5o、UTG2BB→BTN53s/AQoの各action EVをBBで測ります。相手rangeはprior public actionで条件付け、action間でdeal/runout/RNGを共有します。mean/SE/95%区間、paired jam差、全169ハンドのposition別open/shove、9条件ablation、seed/iteration差、per-infoset deltaを公開します。これはNashConvではありません。
 
@@ -31,6 +31,6 @@
 
 `main` に反映するとGitHub ActionsがGitHub Pagesへデプロイします。ソルバーの再計算はリポジトリの **Actions → Train rich NLHE continuation and measure convergence → Run workflow** から開始できます。ジョブは30M/60M/120MのRFI、policy、action EVとraw preflop blueprintをartifactとして出力します。finalize workflowは指定runの3seed・iteration比較と回帰テストを検証し、`preflop_charts.json` と `preflop_policy.json` を更新して公開します。
 
-ローカル再現：pinned upstreamをclone/check outし、`python3 tools/patch_solver.py solver/src`。Rustの`cargo test --release --lib --manifest-path solver/Cargo.toml preflop::`を通してから学習してください。`POKER_MODEL=full`が既定です。ablationは`legacy/nojam/raw/signed/rich/raises/full/chance/sizes`。詳しいCLI・seed・budgetはworkflowに固定しています。
+ローカル再現：pinned upstreamをclone/check outし、`python3 tools/patch_solver.py solver/src`。Rustの`cargo test --release --lib --manifest-path solver/Cargo.toml preflop::`を通してから学習してください。`POKER_MODEL=full`が既定です。ablationは`legacy/nojam/raw/signed/rich/raises/full/chance/sizes`。詳しいCLI・seed・budgetはworkflowに固定しています。Actionsでは一時runnerの不要SDKを削除し40GiB swapを用意します。これはprivate identityを削る代わりに計算時間とdiskを増やすためで、ローカルでは十分なRAM/swapを用意してください。
 
 `index.html`、`preflop_charts.json`、`preflop_policy.json`を同じディレクトリに配置してください。`file://` で直接開いた際にJSONの読み込みが制限されるブラウザーでは、計算済み戦略を使えず簡易判断に切り替わります。

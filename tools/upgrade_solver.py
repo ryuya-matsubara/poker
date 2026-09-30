@@ -10,7 +10,7 @@ def upgrade(directory):
     s=replace_once(s,'    postflop: HashMap<continuation::InfoKey, RegretEntry>,','    postflop: HashMap<continuation::InfoKey, RegretEntry>,\n    shared_runout: [Card;5],\n    post_strategy: HashMap<continuation::InfoKey,Vec<f32>>,\n    pre_strategy: HashMap<PreflopInfoKey,Vec<f32>>,')
     s=replace_once(s,'            postflop: HashMap::new(),','            postflop: HashMap::new(),\n            shared_runout: [0;5],\n            post_strategy: HashMap::new(),\n            pre_strategy: HashMap::new(),')
     s=s.replace('            self.cfr_external(&state, traverser, &mut history);','''            self.post_strategy.clear();self.pre_strategy.clear();
-            let samples=if std::env::var("POKER_MODEL").ok().as_deref()==Some("chance") {4}else{1};
+            let samples=if std::env::var("POKER_MODEL").ok().as_deref()==Some("chance") {2}else{1};
             // Fork decision RNG from chance RNG. CRN branch cloning must never
             // rewind the stream that generates the NEXT deal or board.
             let continuation_seed=self.rng.gen::<u64>();
@@ -48,6 +48,17 @@ mod reopening_regression {
   s.stacks[1]=5;s=s.apply(PreflopAction::AllIn);
   for _ in 0..4 {s=s.apply(PreflopAction::Fold);}
   assert_eq!(s.to_act,0);assert_eq!(s.actions(),vec![PreflopAction::Fold,PreflopAction::Call]);
+ }
+}
+#[cfg(test)]
+mod chance_stream_regression {
+ use super::*;
+ #[test] fn next_deal_rng_is_independent_of_action_tree() {
+  let cfg=PreflopBetConfig{raise_sizes:vec![vec![4,5],vec![14],vec![28]],sb_limp:true,sb_open_size:Some(6),min_allin_depth:0};
+  let mut other=cfg.clone();other.raise_sizes=vec![vec![4,5],vec![10,14],vec![]];
+  let mut a=PreflopTrainer::new(cfg,2026);let mut b=PreflopTrainer::new(other,2026);
+  a.train(100);b.train(100);
+  assert_eq!(a.rng.gen::<u64>(),b.rng.gen::<u64>());
  }
 }
 impl PreflopTrainer {

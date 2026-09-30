@@ -16,7 +16,7 @@ jobs:
         model: [legacy, nojam, raw, signed, rich, raises, full, chance, sizes]
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
+      - name: Provision solver virtual memory\n        run: bash tools/provision_solver_memory.sh\n      - uses: dtolnay/rust-toolchain@stable
       - name: Pin source and construct model
         run: |
           git clone https://github.com/exinori/DCFR-SOLVER.git solver
@@ -49,3 +49,4 @@ jobs:
 # Measured rank-band abstraction; same seed and iteration budget.
 
 # Isolated chance stream, shared deal sequence across variants.
+\n# Preserve exact private identity; two chance samples in the increased-sampling control.\n

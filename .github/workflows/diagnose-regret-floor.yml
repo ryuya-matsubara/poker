@@ -16,7 +16,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: 638a31d2a37d06ff103d46bede8f078bf9ce7d67
+          ref: b1a2bda3c7c2d337d3802d831a3e3b2d563d53fb
       - uses: dtolnay/rust-toolchain@stable
       - name: Change only stochastic regret clipping
         run: |

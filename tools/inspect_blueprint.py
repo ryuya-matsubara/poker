@@ -1,5 +1,5 @@
 """Attach actual cumulative regret to frozen action EV without changing policy."""
-import argparse,json
+import argparse,json,math
 from pathlib import Path
 from export_preflop_policy import entries
 
@@ -14,6 +14,8 @@ def main():
     for s in data:needed[('000000' if s['spot']=='BTN RFI' else '010000',canon(s['hand']))]=s
     iterator=entries(args.blueprint,include_regrets=True);next(iterator)
     for history,b,cum,regret in iterator:
+        if not all(math.isfinite(x) for x in regret) or not all(math.isfinite(x) and x>=0 for x in cum):
+            raise ValueError('Non-finite regret or invalid cumulative average in blueprint')
         s=needed.get((history,b))
         if s is not None:
             if len(s['actions'])!=len(regret):raise ValueError('action count mismatch')

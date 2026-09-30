@@ -8,7 +8,7 @@
 2. 30M seed42の**clippingだけを取り除く対照実験**では、他のabstraction/averagingを維持して、BTN AQo jamが60.684%→7.262%、UTG2BBに対するBTN53s jamが5.953%→0.394%になった。53s旧jam EVは−4.442±0.227BB(SE)、新対照は約−3.60BB。それでも旧戦略に約6%残ることはnoise/clippingの問題を支持する。相手戦略も再学習されるためEVの変化を同じ相手に対するpure action差と解釈しない。
 3. 粗いprivate abstractionにはKQと73が9-6-2 rainbowの同じHighCard bucketに入る例がある。rank/suited identity、kicker、overcard、nut blockerなどが失われる。旧モデルにpostflop raiseがなく、small-open branchだけがその不完全ゲームを通る。jam/call branchは実カードのshowdownへ進む。30M実験でrich/no-raiseはAQo約99%jam、rich/raisesは約9%jamになった。**情報だけ細かくしてもraise treeが不完全なら改善しない。** この旧public-key実験は追加圧縮前の値であり、最終のmatched9条件結果は後掲する。
 4. raw showdownへ戻すとAQo jam約81%、53s jam約9%。raw equityに統一するだけではNLHE continuationの代わりにならない。固定tax/bonusは全条件0のまま。過去Q5oのtax問題は `tax_sensitivity.md` に保存し、今回の異常と分離した。
-5. exactなpublic history/stack組合せを細かく保存すると30Mで約106M postflop infoset、最大RSS約13GB。4board/iteration条件はrunner shutdownで中断した。public-state集約だけでは約100M infosetが残り120M/4board条件はshutdownした。最終モデルはpostflopの非pair rankを5段階へまとめ、pair rank・made/kicker・draw・blocker・public stateを保持する明示的private/public abstractionへ変更し全9条件を再実行した。中断条件を成功として扱っていない。
+5. exactなpublic history/stack組合せを細かく保存すると30Mで約106M postflop infoset、最大RSS約13GB。4board/iteration条件はrunner shutdownで中断した。public-state集約だけでは約100M infosetが残り120M/4board条件はshutdownした。rank-band化も試したが30Mで約75M infosetが残った。最終モデルはprivate169を保持し、post entryを32bytesへ圧縮し、Actions runnerへ40GiB swapを用意した。bounded street/action/public abstractionは維持して、精度を削るよりdiskと時間を増やす方針で全9条件を再実行した。中断条件を成功として扱っていない。
 
 ## ソース変更
 
@@ -34,7 +34,7 @@
 
 Postflop tree：check、33%pot、75%pot、all-in。bet facing：fold/call、3×またはmin-raiseを満たすraise、all-in。各street最大1raise。新規bet/raiseへの支払は累積street contributionとの差で計算する。short-all-inは未対応者のcallを要求するが既にactionした人のraise権を再開しない。side pot、fold payoff、all-in call、showdownは上流のchip conservation処理を使い、合法ランダムstate 10,000件のpreflop＋postflopで `sum(payoff)≈0`, stacks≥0, stack+contribution=20BBを検証する。
 
-Preflopは全169 identityを保持する。Postflop private keyは非pairのhole rankを5段階（2–4/5–7/8–T/J–K/A）にまとめ、pair rankは正確に保持し、suitedness、board-relative made/draw、hole high/low rank、overcards、flush/backdoor count、straight potential、A/K nut/near-nut blockerを保持する。made classifierのtop/middle/bottom pairとkicker強度も使う。完全な1326 suit-labelled identity、全backdoor種類、正確なrange-relative equity/nut advantageは保持しない。nut blockerはboard suitに対するprivate featureであり、相手rangeに対する完全なnut advantageではない。
+Preflop/Postflopとも169 rank/suited identityを保持し、private keyはboard-relative made/draw、hole high/low rank、overcards、flush/backdoor count、straight potential、A/K nut/near-nut blockerを保持する。made classifierはtop/non-top pair、overpair/underpair、kickerの粗い強度を区別する。middle/bottom pair、gutshot/open-ended/double-gutshotの全種類は完全には分離せず、rank bands・board bins・straight potentialとの組合せで近似する。完全な1326 suit-labelled identity、全backdoor種類、正確なrange-relative equity/nut advantageは保持しない。nut blockerはboard suitに対するprivate featureであり、相手rangeに対する完全なnut advantageではない。
 
 Public keyはboard rank/texture、position/actor、active/folded/all-in masks、preflop pot type(first/last aggressor, raise count)、street bettor/raise/acted/pending state、直前2streetのaggressor summaries、pot bucket、各active opponentのstack band、SPR、to-call由来pot odds16段階、bet/pot比を持つ。pot bandsはhalfBB chipsで3/6/10/16/24/40/64/96/160/240、stack bandsは0/4/10/20/40、SPRは0/0.5/1/2/4/8。正確なbet合法性/stack/side pot/payoffはbucket化しない。exact action sequence全体は保持せず戦略上のbetting stateへ集約する。random hash collision、memory eviction、固定realization係数は用いない。
 
@@ -60,4 +60,17 @@ open2/2.5BB（SB3BB）、3bet7BB、4bet14BB、all-inをbaselineとする。追�
 - [OpenSpiel external sampling](https://github.com/google-deepmind/open_spiel/blob/master/open_spiel/python/algorithms/external_sampling_mccfr.py): simple averageとfull average、multi-playerでの制約をコードと比較。
 - [CFR+論文](https://arxiv.org/abs/1407.5042)、[Local Best Response](https://arxiv.org/abs/1612.07547): full-game BR/NashConvは未計算。局所EV評価のmax mean action−policy meanはone-step deviation検査で、全streetで最適反応するBRではない。
 
+外部条件の記録（2026-09-30確認）:
+
+| 公開資料 | 人数/stack | ante | rake | open size | 用途 |
+|---|---|---|---|---|---|
+| GTO Wizard BTN20BB記事 | BTN/SB/BB局所・20BB chipEV、完全6max range無し | total1BB | 記事はchipEV | minraise/jam | shove/rangeの方向のみ。noanteの正解ではない |
+| MonkerGuy 6max NLH noante pack | 6max・20〜200BB | 0 | 5% | public listingでは全size不明 | 同条件ではない。公開169頻度無し、有料購入していない |
+| HRC公式手順 | configurable cash/MTT | configurable | configurable | tree設定 | モデル設計の資料。今回のsolve/基準表は取得していない |
+| Simple Preflop Holdem公式 | configurable multiway | configurable | configurable | tree設定 | postflop abstractionとsampling方式の確認。今回のsolve/基準表無し |
+
+[MonkerGuy public listing](https://www.monkerguy.com/) は6max/noanteでもrake5%なので、今回のrake0戦略へ一致を求めない。[Simple Preflop Holdem](https://simplepoker.com/en/Solutions/Simple_Preflop_Holdem) はcard abstraction/Monte Carloを使うsolverだが、その商用結果を今回生成したと主張しない。
+
 同一条件の公認GTOチャートを取得できなかったので、絶対的なGTO距離、GTO Wizard相当、何%GTOという数値は提示しない。premium/weak、suited/offsuit、position、action EV、全169レンジ、複数seed/iterationの内部validationを行う。境界handの一致を収束の証明として使わない。ゲーム中のpostflop CPUはこれらtraining postflop policyを参照せず既存の簡易decisionを使うため、**CPU全体がGTOであるという主張はできない。**
+
+EV診断の注意：同じデータで最大mean actionを選ぶためone-step gainはsampling noiseで上振れし得る。95%警告は探索的で多重比較補正はしていない。到達しにくいoff-policy postflop infosetの平均戦略は未学習ならuniformとなり、forced action EVは最適なpostflop continuation EVではない。この不確実性もfull-game GTO誤差とは区別する。
