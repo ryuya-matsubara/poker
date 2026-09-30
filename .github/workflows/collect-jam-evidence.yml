@@ -1,0 +1,35 @@
+name: Collect jam ablation evidence
+on:
+  push:
+    branches: [solver-jam-final]
+    paths: [.github/workflows/collect-jam-evidence.yml]
+permissions:
+  contents: read
+  actions: read
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            for(let i=0;i<900;i++) {
+              const r=await github.rest.actions.getWorkflowRun({...context.repo,run_id:36670071793});
+              if(r.data.status==='completed') return;
+              await new Promise(r=>setTimeout(r,10000));
+            }
+            throw Error('Ablation timeout');
+      - uses: actions/download-artifact@v4
+        with:
+          run-id: 36670071793
+          github-token: ${{ github.token }}
+          pattern: jam-*
+          path: runs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: jam-ablation-evidence
+          path: |
+            runs/**/*.json
+            runs/**/*.csv
+            runs/**/training.log
