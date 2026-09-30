@@ -1,7 +1,7 @@
 name: Diagnose jam consistency and MCCFR
 on:
   push:
-    branches: [solver-jam-consistency]
+    branches: [solver-jam-consistency, solver-jam-final]
     paths: [.github/workflows/experiment-jam-model.yml]
   workflow_dispatch:
 permissions:
@@ -19,11 +19,12 @@ jobs:
       - name: Provision solver virtual memory
         run: bash tools/provision_solver_memory.sh
       - uses: dtolnay/rust-toolchain@stable
-      - name: Pin source and construct model
+      - name: Pin source and construct v8 model
         run: |
           git clone https://github.com/exinori/DCFR-SOLVER.git solver
           git -C solver checkout 4ade6a9e15a841c41867afde1258b9d110cd6fb1
           python3 tools/upgrade_solver.py solver/src
+          python3 tools/add_resumable_solver.py solver/src
       - name: Unit and randomized property tests
         env:
           POKER_MODEL: ${{ matrix.model }}
@@ -38,18 +39,16 @@ jobs:
           mkdir experiment
           /usr/bin/time -v cargo run --release --manifest-path solver/Cargo.toml -- preflop --iterations 30000000 --seed 42 --open-size 5 --sb-open-size 6 --bet3-size 14 --bet4-size 28 --oop-pot-tax 0 --output experiment/blueprint.bin --chart-output experiment/chart.json 2>experiment/training.log
           python3 tools/analyze_preflop_charts.py experiment/chart.json --output experiment/frequency.json
-          cat experiment/ev.json
+          sha256sum tools/continuation.rs tools/continuation_legacy.rs tools/upgrade_solver.py tools/patch_solver_base.py tools/add_resumable_solver.py tools/trainer_checkpoint.rs > experiment/source-sha256.txt
+          git rev-parse HEAD > experiment/source-commit.txt
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: jam-${{ matrix.model }}-seed42-30m
+          name: jam-v8-${{ matrix.model }}-seed42-30m
           path: |
             experiment/*.json
             experiment/*.csv
+            experiment/*.txt
             experiment/training.log
 
-# Measured rank-band abstraction; same seed and iteration budget.
-
-# Isolated chance stream, shared deal sequence across variants.
-
-# Preserve exact private identity; two chance samples in the increased-sampling control.
+# Matched seed and iteration budget; v8 serializable chance stream.
