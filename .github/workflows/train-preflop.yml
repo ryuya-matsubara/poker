@@ -16,6 +16,8 @@ jobs:
       POKER_CHECKPOINT_PREFIX: experiment
     steps:
       - uses: actions/checkout@v4
+      - name: Provision virtual memory for exact private identity
+        run: bash tools/provision_solver_memory.sh
       - uses: dtolnay/rust-toolchain@stable
       - name: Construct pinned solver
         run: |

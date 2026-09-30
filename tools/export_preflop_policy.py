@@ -92,7 +92,7 @@ def main():
     output = {history: hands for history, hands in output.items() if any(hands)}
     result = {'version': 3, 'iterations': iterations, 'source_commit': '4ade6a9e15a841c41867afde1258b9d110cd6fb1',
               'max_stack_bb': 20, 'bet_sizes_half_bb': sizes, 'sb_open_half_bb': sb_open,
-              'min_allin_depth': min_allin, 'continuation_model': 'joint-three-street-cfr-v6',
+              'min_allin_depth': min_allin, 'continuation_model': 'joint-three-street-cfr-v7',
               'oop_pot_tax': 0, 'rng_scheme': 'isolated-deal-board-decision-streams', 'export_shallow_depth': 4, 'deep_history_mass_threshold': args.min_visits,
               'model_sha256': hashlib.sha256(Path(__file__).with_name('continuation.rs').read_bytes()).hexdigest(),
               'algorithm': 'signed-external-sampling-MCCFR', 'average_weighting': 'linear-own-reach-divided-by-opponent-sample-reach', 'sampling_exploration': 0.05, 'postflop_raise_limit': 1, 'ante_bb': 0, 'rake': 0, 'histories': output}
