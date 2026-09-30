@@ -69,14 +69,22 @@ fn key(n:&Node,p:usize,a:&[i32])->InfoKey {
  let pot:i32=n.state.bets.iter().sum();let call=(n.target-n.paid[p]).max(0);
  let effective=(0..6).filter(|&i|i!=p&&!n.state.folded[i]).map(|i|n.state.stacks[i]+n.paid[i]).max().unwrap_or(0).min(n.state.stacks[p]+n.paid[p]);
  // Private identity is 169 rank/suited classes, not 1326 suit-labelled combos.
- // Public board ranks and suit topology are bucketed; exact money/history are retained.
+ // Public boards and money use explicit buckets. Bet legality/payoff stay exact.
  let private=(canonical_hand(hole[0],hole[1]).index(),legacy,over,hi,lo,flush,straight,nut,near);
  let public=(br.last().unwrap()/3,br[br.len()/2]/3,br[0]/3,suits.iter().max().copied().unwrap(),br.windows(2).any(|w|w[0]==w[1]));
  let odds=(16*call/(pot+call).max(1)).min(15);
  let bet_fraction=(8*n.target/(pot-n.paid.iter().sum::<i32>()).max(1)).min(31);
- let stacks=n.state.stacks.map(|x|(x+1)/4); // 2BB resolution; payoffs use exact chips.
- let money=((pot+2)/4,stacks,(effective+1)/4,odds,bet_fraction,a.len());
- InfoKey((hash(&(private,public)) as u128)<<64|hash(&(p,n.street,actionable(&n.state),n.state.folded,n.state.last_aggressor,n.prehistory,n.history,n.previous,money)) as u128)
+ // Sparse exact-history keys created >100M singleton infosets in 30M deals.
+ // Strategic state aggregation preserves each opponent's stack band and betting
+ // rights, rather than random hash collisions or discarding learned entries.
+ let band=|x:i32| [0,4,10,20,40].iter().position(|&v|x<=v).unwrap_or(5) as u8;
+ let stacks=std::array::from_fn::<_,6,_>(|i|if n.state.folded[i]{0}else{band(n.state.stacks[i])});
+ let pot_band=[3,6,10,16,24,40,64,96,160,240].iter().position(|&x|pot<=x).unwrap_or(10);
+ let spr=(8*effective/pot.max(1)).min(64);
+ let spr_band=[0,4,8,16,32,64].iter().position(|&x|spr<=x).unwrap_or(6);
+ let money=(pot_band,stacks,spr_band,odds,bet_fraction,a.len());
+ let betting=(n.bettor,n.raises,n.acted,n.pending,n.previous);
+ InfoKey((hash(&(private,public)) as u128)<<64|hash(&(p,n.street,actionable(&n.state),n.state.folded,n.state.last_aggressor,n.prehistory,betting,money)) as u128)
 }
 fn terminal(n:&Node,t:u8)->f32 {if n.state.active_count()==1 {let w=(0..6).find(|&p|!n.state.folded[p]).unwrap();n.state.payoff_fold(w as u8)[t as usize]}else{n.state.payoff_showdown(n.runout.iter().fold(Hand::new(),|h,&c|h.add(c)))[t as usize]}}
 fn update<E:Entry>(e:&mut E,s:&[f32],v:&[f32],value:f32,r:Reach,weight:f64) {
@@ -106,7 +114,12 @@ fn sample<R:Rng>(s:&[f32],rng:&mut R)->usize {let u=rng.gen::<f32>();let mut c=0
 fn public_preflop(s:&PreflopState,h:&[u8])->u64 {
  let mut replay=PreflopState::new_6max(s.config.clone());let mut raises=Vec::new();
  for &idx in h {let a=replay.actions();if idx as usize>=a.len(){break;}let x=a[idx as usize];if matches!(x,super::PreflopAction::Raise(_)|super::PreflopAction::AllIn){raises.push((replay.to_act,x));}replay=replay.apply(x);}
- hash(&raises)
+ // Recall pot type and aggressor order, but not arbitrary sequence hashes.
+ // Active/caller masks, contribution-derived pot/SPR and per-player stacks are
+ // separately present in InfoKey. This is an explicit imperfect-recall model.
+ let last=raises.last().map(|x|x.0).unwrap_or(6);
+ let first=raises.first().map(|x|x.0).unwrap_or(6);
+ hash(&(raises.len().min(3),first,last))
 }
 fn node(s:&PreflopState,runout:[Card;5],history:&[u8])->Node {Node{state:s.clone(),board:runout[..3].iter().fold(Hand::new(),|h,&c|h.add(c)),runout,street:3,paid:[0;6],pending:actionable(s),acted:0,bettor:None,target:0,last_raise:2,raises:0,history:0,prehistory:public_preflop(s,history),previous:0}}
 fn leaf(t:&mut PreflopTrainer,s:&PreflopState,tr:u8,h:&[u8],r:Reach,learn:bool)->f32 {
