@@ -168,7 +168,7 @@ mod tests {
  use super::*;use crate::card::card;use super::super::PreflopBetConfig;
  #[test] fn signed_regrets_and_average_reach() {
   let mut e=RegretEntry::new(2);update(&mut e,&[0.5,0.5],&[-2.,2.],0.,Reach{own:0.2,q:0.5,cf:0.25},10.);
-  assert_eq!(e.regrets,vec![-0.5,0.5]);assert_eq!(e.cum_strategy,vec![2.,2.]);assert_eq!(e.current_strategy(),vec![0.,1.]);
+  let factor=if mode()=="linear"{10.}else{1.};assert_eq!(e.regrets,vec![-0.5*factor,0.5*factor]);assert_eq!(e.cum_strategy,vec![2.,2.]);assert_eq!(e.current_strategy(),vec![0.,1.]);
  }
  #[test] fn importance_sampling_preserves_expectation() {
   let pi=[0.8,0.2];let q=[0.6,0.4];let u=[-4.,6.];let expected:f64=(0..2).map(|i|q[i]*(pi[i]/q[i])*u[i]).sum();assert!((expected+2.).abs()<1e-9);
