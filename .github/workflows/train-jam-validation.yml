@@ -1,4 +1,4 @@
-name: Train rich NLHE continuation and measure convergence v2
+name: Train rich NLHE continuation and measure convergence v3
 on:
   push:
     branches: [solver-jam-final]
@@ -41,6 +41,12 @@ jobs:
           cp experiment/120m-policy.json preflop_policy.json
           python3 tools/validate_preflop.py preflop_charts.json --policy preflop_policy.json --output experiment/validation.json
           node tools/test_preflop_frontend.cjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: jam-blueprints-seed${{ matrix.seed }}
+          path: experiment/*blueprint.bin
+          compression-level: 9
       - uses: actions/upload-artifact@v4
         if: always()
         with:
