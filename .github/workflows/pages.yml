@@ -43,3 +43,24 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
+      - name: Verify published strategy
+        run: |
+          python3 - <<'PY'
+          import json, time, urllib.request
+          base='https://ryuya-matsubara.github.io/poker/'
+          expected=json.load(open('preflop_charts.json'))
+          for attempt in range(12):
+              try:
+                  with urllib.request.urlopen(base+'preflop_charts.json?v=release-20260930', timeout=20) as response:
+                      actual=json.load(response)
+                  with urllib.request.urlopen(base+'?v=release-20260930', timeout=20) as response:
+                      html=response.read().decode()
+                  assert actual == expected, 'Published chart does not match verified chart'
+                  assert 'joint-final60m-20260930' in html, 'Old HTML is still published'
+                  print('Live Pages HTML and full strategy verified')
+                  break
+              except Exception:
+                  if attempt==11: raise
+                  time.sleep(5)
+          PY
