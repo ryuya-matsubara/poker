@@ -28,3 +28,22 @@ The sizes variant (3bet5/7BB; 4betjam only) yields A5s jam0.206%, but AQo vs UTG
 
 Artifacts store complete169-hand distributions and all actionEV/SE/CI; rawrun data remain in GitHub Actions. Interim results do not establish full6-player NLHE Nash convergence.
 
+
+## Additional completed verification
+
+Unchanged-game linear-weight trial run36697590869 succeeded, sourcec7dd8dd75235acb85e8c782e1eff1ac545561dc4, artifact11088464754. At30Mseed42:
+- BTN AQo: Fold~0%, raise2BB95.09%, raise2.5BB3.31%, jam1.60%. EV1.7489/1.6268/1.8107BB for the non-fold actions.
+- BTN A5s: Fold0.03%, raise2BB42.77%, raise2.5BB43.76%, jam13.44%. EV0.2616(SE0.0866)/0.2449(SE0.0933)/-0.1112(SE0.1076)BB. Jam advantage against the current average policy is -0.3153(SE0.0782)BB: still a statistically significant convergence warning.
+- BTN22: jam10.07%, jam advantage-0.2882(SE0.1002)BB: another warning.
+- 53s vsUTG2BB: Fold99.68%, Call0.16%, raise7BB0.04%, jam0.12%.
+- AQo vsUTG2BB: Call75.31%, raise7BB7.47%, jam17.22%; raise advantage-0.5750(SE0.1677)BB.
+The linear trial is not selected just because shove frequencies look better.
+
+Independent update-kernel benchmark run36700084717 succeeded, sourcecd5f059a8d52d68dea5e27427039239dc398ae31:
+- 200,000 external-sampling iterations on perfect-recall two-player Kuhn poker.
+- Actual shared regret/average update function, exploration and reach corrections; chance RNG separated from cloned decision RNG.
+- All64 pure contingent strategies per player enumerated to compute exact best responses.
+- Learned game value-0.055581 vs theoretical -1/18=-0.055556.
+- Exact two-player NashConv0.007888.
+- 26Rust tests passed,2 upstream tests ignored; Python3export+4analysis tests passed.
+This is a benchmark of the sampled kernel only. It does not certify the rich imperfect-recall six-player NLHE abstraction or establish its exploitability.
