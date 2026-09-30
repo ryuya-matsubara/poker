@@ -57,7 +57,7 @@ def compare(a, b, name):
 
 def check_policy(policy_path, charts):
     policy = json.loads(policy_path.read_text())
-    if policy.get('continuation_model') != 'joint-three-street-cfr-v4' or policy.get('model_sha256') != hashlib.sha256(Path(__file__).with_name('continuation.rs').read_bytes()).hexdigest():
+    if policy.get('continuation_model') != 'joint-three-street-cfr-v5' or policy.get('model_sha256') != hashlib.sha256(Path(__file__).with_name('continuation.rs').read_bytes()).hexdigest():
         raise ValueError('strategy was not generated with the current continuation model')
     if policy['max_stack_bb'] != 20 or policy['bet_sizes_half_bb'] != [[4,5],[14],[28]] or policy.get('min_allin_depth') != 0 or policy.get('oop_pot_tax') != 0:
         raise ValueError('stack or action abstraction mismatch')

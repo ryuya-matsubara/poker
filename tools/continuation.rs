@@ -68,9 +68,12 @@ fn key(n:&Node,p:usize,a:&[i32])->InfoKey {
  let straight=(0..=9).map(|i|((wheel>>i)&31).count_ones()).max().unwrap() as u8;
  let pot:i32=n.state.bets.iter().sum();let call=(n.target-n.paid[p]).max(0);
  let effective=(0..6).filter(|&i|i!=p&&!n.state.folded[i]).map(|i|n.state.stacks[i]+n.paid[i]).max().unwrap_or(0).min(n.state.stacks[p]+n.paid[p]);
- // Private identity is 169 rank/suited classes, not 1326 suit-labelled combos.
+ // Postflop rank bands preserve A separately, suitedness and pair rank.
+ // Preflop always retains all 169 identities; postflop does not multiply every
+ // made/draw/public state by an exact preflop identity (mostly singleton keys).
  // Public boards and money use explicit buckets. Bet legality/payoff stay exact.
- let private=(canonical_hand(hole[0],hole[1]).index(),legacy,over,hi,lo,flush,straight,nut,near);
+ let ranks=if hi==lo{(hi+16,lo+16)}else{(hi/3,lo/3)};
+ let private=(legacy,over,ranks,suit(hole[0])==suit(hole[1]),flush,straight,nut,near);
  let public=(br.last().unwrap()/3,br[br.len()/2]/3,br[0]/3,suits.iter().max().copied().unwrap(),br.windows(2).any(|w|w[0]==w[1]));
  let odds=(16*call/(pot+call).max(1)).min(15);
  let bet_fraction=(8*n.target/(pot-n.paid.iter().sum::<i32>()).max(1)).min(31);
