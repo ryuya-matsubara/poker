@@ -1,4 +1,4 @@
-name: Diagnose jam consistency and MCCFR
+name: Compare linear regret weighting without game changes
 on:
   push:
     branches: [solver-jam-consistency]
@@ -13,7 +13,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        model: [legacy, nojam, raw, signed, rich, raises, full, chance, sizes]
+        model: [linear]
     steps:
       - uses: actions/checkout@v4
       - name: Provision solver virtual memory

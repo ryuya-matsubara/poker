@@ -29,8 +29,8 @@ struct Node {state:PreflopState,board:Hand,runout:[Card;5],street:usize,paid:[i3
 struct Reach {own:f64,q:f64,cf:f64}
 impl Reach {fn root()->Self {Self{own:1.,q:1.,cf:1.}}}
 fn mode()->&'static str {static MODE:std::sync::OnceLock<String>=std::sync::OnceLock::new();MODE.get_or_init(||std::env::var("POKER_MODEL").unwrap_or_else(|_|"full".into())).as_str()}
-fn rich()->bool {matches!(mode(),"rich"|"full"|"chance"|"sizes")}
-fn raises()->bool {matches!(mode(),"raises"|"full"|"chance"|"sizes")}
+fn rich()->bool {matches!(mode(),"rich"|"full"|"chance"|"sizes"|"linear")}
+fn raises()->bool {matches!(mode(),"raises"|"full"|"chance"|"sizes"|"linear")}
 fn actionable(s:&PreflopState)->u8 {(0..6).filter(|&p|!s.folded[p]&&!s.all_in[p]).fold(0,|m,p|m|1<<p)}
 fn wager(s:&mut PreflopState,p:usize,n:i32)->i32 {let n=n.max(0).min(s.stacks[p]);s.stacks[p]-=n;s.bets[p]+=n;s.all_in[p]=s.stacks[p]==0;n}
 fn actor(n:&Node)->usize {let start=n.bettor.map(|p|(ORDER.iter().position(|&q|q==p).unwrap()+1)%6).unwrap_or(0);(0..6).map(|i|ORDER[(start+i)%6]).find(|&p|n.pending&(1<<p)!=0).unwrap()}
@@ -92,7 +92,7 @@ fn key(n:&Node,p:usize,a:&[i32])->InfoKey {
 }
 fn terminal(n:&Node,t:u8)->f32 {if n.state.active_count()==1 {let w=(0..6).find(|&p|!n.state.folded[p]).unwrap();n.state.payoff_fold(w as u8)[t as usize]}else{n.state.payoff_showdown(n.runout.iter().fold(Hand::new(),|h,&c|h.add(c)))[t as usize]}}
 fn update<E:Entry>(e:&mut E,s:&[f32],v:&[f32],value:f32,r:Reach,weight:f64) {
- for a in 0..s.len(){e.add(a,(r.cf*(v[a]-value) as f64) as f32,(weight*r.own/r.q*s[a] as f64) as f32);}
+ for a in 0..s.len(){e.add(a,(r.cf*(v[a]-value) as f64*if mode()=="linear"{weight}else{1.}) as f32,(weight*r.own/r.q*s[a] as f64) as f32);}
 }
 fn cfr(t:&mut PreflopTrainer,n:&Node,tr:u8,r:Reach,learn:bool)->f32 {
  if n.state.folded[tr as usize]{return -(n.state.bets[tr as usize] as f32);}
