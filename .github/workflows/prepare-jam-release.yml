@@ -45,6 +45,10 @@ jobs:
               await new Promise(resolve=>setTimeout(resolve,10000));
             }
             throw new Error('Final training is still running');
+      - name: Refresh verification sources after training wait
+        uses: actions/checkout@v4
+        with:
+          ref: solver-jam-final
       - uses: actions/download-artifact@v4
         with:
           run-id: ${{ inputs.training_run || '36674454225' }}

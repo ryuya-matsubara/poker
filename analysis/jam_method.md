@@ -5,7 +5,7 @@
 ## 原因と切り分け
 
 1. 旧preflop/postflopはexternal samplingに毎訪問 `regret=max(0,regret+advantage)` を適用していた。DCFRの正負regret discountではない。CFR+のclippingは正確なfull-tree更新で有用だが、このstochastic更新では負の証拠を失い、不利なactionがサンプリングノイズで繰り返し復活する。旧平均戦略もown reachを掛けず、iteration×strategyを訪問時に加算していた。
-2. 30M seed42の**clippingだけを取り除く対照実験**では、他のabstraction/averagingを維持して、BTN AQo jamが60.68%→7.27%、UTG2BBに対するBTN53s jamが5.97%→0.37%になった。53s旧jam EVは−4.442±0.227BB(SE)、新対照は約−3.60BB。それでも旧戦略に約6%残ることはnoise/clippingの問題を支持する。相手戦略も再学習されるためEVの変化を同じ相手に対するpure action差と解釈しない。
+2. 30M seed42の**clippingだけを取り除く対照実験**では、他のabstraction/averagingを維持して、BTN AQo jamが60.684%→7.262%、UTG2BBに対するBTN53s jamが5.953%→0.394%になった。53s旧jam EVは−4.442±0.227BB(SE)、新対照は約−3.60BB。それでも旧戦略に約6%残ることはnoise/clippingの問題を支持する。相手戦略も再学習されるためEVの変化を同じ相手に対するpure action差と解釈しない。
 3. 粗いprivate abstractionにはKQと73が9-6-2 rainbowの同じHighCard bucketに入る例がある。rank/suited identity、kicker、overcard、nut blockerなどが失われる。旧モデルにpostflop raiseがなく、small-open branchだけがその不完全ゲームを通る。jam/call branchは実カードのshowdownへ進む。30M実験でrich/no-raiseはAQo約99%jam、rich/raisesは約9%jamになった。**情報だけ細かくしてもraise treeが不完全なら改善しない。** この旧public-key実験は追加圧縮前の値であり、最終のmatched9条件結果は後掲する。
 4. raw showdownへ戻すとAQo jam約81%、53s jam約9%。raw equityに統一するだけではNLHE continuationの代わりにならない。固定tax/bonusは全条件0のまま。過去Q5oのtax問題は `tax_sensitivity.md` に保存し、今回の異常と分離した。
 5. exactなpublic history/stack組合せを細かく保存すると30Mで約106M postflop infoset、最大RSS約13GB。4board/iteration条件はrunner shutdownで中断した。public-state集約だけでは約100M infosetが残り120M/4board条件はshutdownした。最終モデルはpostflopの非pair rankを5段階へまとめ、pair rank・made/kicker・draw・blocker・public stateを保持する明示的private/public abstractionへ変更し全9条件を再実行した。中断条件を成功として扱っていない。
