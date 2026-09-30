@@ -14,14 +14,15 @@ class ExportTests(unittest.TestCase):
         def put(fmt, *values):
             data.extend(struct.pack('<'+fmt, *values))
         put('B',3)
-        for size in [5,14,28]:
-            put('Bi',1,size)
+        for sizes in [[4,5],[14],[28]]:
+            put('B',len(sizes))
+            put('i'*len(sizes),*sizes)
         put('BiBQQ',1,6,0,10000,169*5)
         for depth in range(5):
             for bucket in range(169):
                 put('BH',bucket,depth)
                 data.extend(bytes(depth))
-                n=4 if depth==4 else 3
+                n=4
                 put('H',n)
                 put('f'*n,*([0]*n))
                 values=list(range(1,n+1))
@@ -49,7 +50,7 @@ class ExportTests(unittest.TestCase):
                 self.assertEqual(len(rows),169)
                 for row in rows:
                     self.assertAlmostEqual(sum(row),1,places=3)
-            self.assertEqual(len(policy['histories']['000000'][139]),3)
+            self.assertEqual(len(policy['histories']['000000'][139]),4)
 
     def test_reject_nonfinite_probability(self):
         with tempfile.TemporaryDirectory() as temp:

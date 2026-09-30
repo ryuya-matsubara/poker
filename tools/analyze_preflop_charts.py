@@ -2,6 +2,7 @@
 import argparse
 import csv
 import json
+import math
 from pathlib import Path
 
 
@@ -14,12 +15,12 @@ def report(path):
             label = item['hand']
             combos = 6 if len(label) == 2 else 4 if label.endswith('s') else 12
             actions = {a['action']: a['prob'] for a in item['actions']}
-            if not actions or abs(sum(actions.values()) - 1) > 0.002:
+            if not actions or not all(math.isfinite(p) and 0 <= p <= 1 for p in actions.values()) or abs(sum(actions.values()) - 1) > 0.002:
                 raise ValueError(f'invalid strategy: {spot["spot_name"]} {label}')
             rows.append({'hand': label, 'combos': combos,
                          'open': sum(p for action, p in actions.items() if action.startswith('raise') or action == 'allin'),
                          'limp': actions.get('call', 0), 'actions': actions})
-        if len(rows) != 169 or sum(r['combos'] for r in rows) != 1326:
+        if len(rows) != 169 or len({r['hand'] for r in rows}) != 169 or sum(r['combos'] for r in rows) != 1326:
             raise ValueError(f'incomplete chart: {spot["spot_name"]}')
         output[spot['spot_name']] = {'open': sum(r['combos'] * r['open'] for r in rows) / 1326,
                                      'limp': sum(r['combos'] * r['limp'] for r in rows) / 1326,

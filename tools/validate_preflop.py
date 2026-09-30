@@ -61,7 +61,7 @@ def compare(a, b, name):
 
 def check_policy(policy_path, charts):
     policy = json.loads(policy_path.read_text())
-    if policy['max_stack_bb'] != 20 or policy['bet_sizes_half_bb'] != [[5],[14],[28]] or policy.get('min_allin_depth') != 0 or policy.get('oop_pot_tax') != 0:
+    if policy['max_stack_bb'] != 20 or policy['bet_sizes_half_bb'] != [[4,5],[14],[28]] or policy.get('min_allin_depth') != 0 or policy.get('oop_pot_tax') != 0:
         raise ValueError('stack or action abstraction mismatch')
     histories = policy['histories']
     for history, rows in histories.items():
@@ -80,7 +80,7 @@ def check_policy(policy_path, charts):
     # Q5o is bucket 91 + 10*9/2 + 3; compare chart and full-policy exports.
     btn = next(r for r in charts['BTN RFI']['hands'] if r['hand']=='Q5o')
     policy_btn = histories['000000'][139]
-    if policy_btn is None or len(policy_btn) != 3 or abs(sum(policy_btn[1:])-btn['open']) > .003:
+    if policy_btn is None or len(policy_btn) != 4 or abs(sum(policy_btn[1:])-btn['open']) > .003:
         raise ValueError('BTN Q5o policy does not match the RFI chart')
 
 

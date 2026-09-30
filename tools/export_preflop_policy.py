@@ -7,6 +7,7 @@ import argparse
 import json
 import struct
 import math
+import hashlib
 from collections import defaultdict
 from pathlib import Path
 
@@ -58,7 +59,7 @@ def main():
     first = entries(args.blueprint)
     config = next(first)
     sizes, sb_limp, sb_open, min_allin, iterations, count = config
-    if sizes != [[5], [14], [28]] or not sb_limp or sb_open != 6 or min_allin != 0:
+    if sizes != [[4,5], [14], [28]] or not sb_limp or sb_open != 6 or min_allin != 0:
         raise ValueError('Blueprint does not match 20BB app action sizes')
     history_mass = defaultdict(float)
     scale = max(1, iterations / 2)
@@ -84,10 +85,11 @@ def main():
         output[history][bucket] = [round(x / total, 4) for x in cum]
         kept += 1
     output = {history: hands for history, hands in output.items() if any(hands)}
-    result = {'version': 2, 'iterations': iterations, 'source_commit': '4ade6a9e15a841c41867afde1258b9d110cd6fb1',
+    result = {'version': 3, 'iterations': iterations, 'source_commit': '4ade6a9e15a841c41867afde1258b9d110cd6fb1',
               'max_stack_bb': 20, 'bet_sizes_half_bb': sizes, 'sb_open_half_bb': sb_open,
-              'min_allin_depth': min_allin, 'continuation_model': 'joint-three-street-cfr-v1',
+              'min_allin_depth': min_allin, 'continuation_model': 'joint-three-street-cfr-v2',
               'oop_pot_tax': 0,
+              'model_sha256': hashlib.sha256(Path(__file__).with_name('continuation.rs').read_bytes()).hexdigest(),
               'histories': output}
     args.output.write_text(json.dumps(result, separators=(',', ':'), ensure_ascii=False))
     print(f'{kept} hands in {len(output)} action histories, {count} raw infosets; output {args.output.stat().st_size} bytes')

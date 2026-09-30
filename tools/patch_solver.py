@@ -42,6 +42,10 @@ def patch(source_dir):
     source = before + start + '\n                continuation::terminal_value(self, state, traverser)\n            }\n' + end + after
     source = replace_once(source, 'use std::collections::HashMap;',
         'use std::collections::HashMap;\n#[path = "continuation.rs"] mod continuation;')
+    if source.count('actions.push(PreflopAction::Raise(total_bet));') != 2:
+        raise ValueError('upstream raise action markers changed')
+    source = source.replace('actions.push(PreflopAction::Raise(total_bet));',
+        'if !actions.contains(&PreflopAction::Raise(total_bet)) { actions.push(PreflopAction::Raise(total_bet)); }')
     source = replace_once(source, '    pub oop_pot_tax: f32,',
         '    pub oop_pot_tax: f32,\n    postflop: HashMap<continuation::InfoKey, RegretEntry>,')
     source = replace_once(source, '            oop_pot_tax: 0.0,',
@@ -64,16 +68,18 @@ mod poker_app_regression_tests {
     #[test]
     fn six_max_20bb_blinds_and_action_order() {
         let cfg = PreflopBetConfig {
-            raise_sizes: vec![vec![5], vec![14], vec![28]],
+            raise_sizes: vec![vec![4,5], vec![14], vec![28]],
             sb_limp: true, sb_open_size: Some(6), min_allin_depth: 0,
         };
         let mut state = PreflopState::new_6max(cfg);
         assert_eq!(state.stacks, [40,40,40,40,39,38]);
         assert_eq!(state.bets, [0,0,0,0,1,2]);
-        assert_eq!(state.actions(), vec![PreflopAction::Fold,PreflopAction::Raise(5),PreflopAction::AllIn]);
+        assert_eq!(state.actions(), vec![PreflopAction::Fold,PreflopAction::Raise(4),PreflopAction::Raise(5),PreflopAction::AllIn]);
         for _ in 0..3 { state = state.apply(PreflopAction::Fold); }
         assert_eq!(state.to_act, 3); // BTN after UTG, HJ, CO folds
-        assert_eq!(state.actions(), vec![PreflopAction::Fold,PreflopAction::Raise(5),PreflopAction::AllIn]);
+        assert_eq!(state.actions(), vec![PreflopAction::Fold,PreflopAction::Raise(4),PreflopAction::Raise(5),PreflopAction::AllIn]);
+        let sb = state.apply(PreflopAction::Fold);
+        assert_eq!(sb.actions(), vec![PreflopAction::Fold,PreflopAction::Call,PreflopAction::Raise(6),PreflopAction::AllIn]);
         state = state.apply(PreflopAction::Raise(5));
         assert_eq!(state.last_aggressor, Some(3));
         assert_eq!(state.actions(), vec![PreflopAction::Fold,PreflopAction::Call,
@@ -87,6 +93,9 @@ mod poker_app_regression_tests {
     main_source = replace_once(main.read_text(),
         'min_allin_depth: 1,  // No open-shove; all-in allowed after first raise',
         'min_allin_depth: 0,  // Allow 20BB open shove')
+    main_source = replace_once(main_source,
+        'vec![open_size],   // depth 0 (open)',
+        'vec![4, 5],       // depth 0: 2BB and 2.5BB')
     main_source = replace_once(main_source,
         '#[arg(long, default_value_t = 0.20)]',
         '#[arg(long, default_value_t = 0.0)]')
