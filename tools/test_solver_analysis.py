@@ -3,6 +3,7 @@ import json,tempfile,unittest
 from pathlib import Path
 from analyze_jam import ev_summary,policy_delta
 from check_convergence import warnings
+from release_gate import release_gate
 from validate_preflop import check_chart
 from analyze_preflop_charts import report
 
@@ -38,6 +39,20 @@ class AnalysisTests(unittest.TestCase):
         self.assertEqual(warnings(ev)[0]['action'],'fold')
         ev[0]['actions'][0]['regret_se_bb']=.2
         self.assertEqual(warnings(ev),[])
+    def test_release_gate_uses_all_final_seeds_and_uncertainty(self):
+        def evidence(gap,se):
+            return {f'seed{s}-120m':[{'spot':'synthetic','hand':'synthetic','actions':[
+                {'action':'fold','probability':0.,'mean_bb':0.,'se_bb':0.,
+                 'estimated_regret_bb':gap,'regret_se_bb':se,'samples':10000},
+                {'action':'allin','probability':1.,'mean_bb':-gap,'se_bb':se,
+                 'estimated_regret_bb':0.,'regret_se_bb':0.,'samples':10000}]}] for s in [42,73,101]}
+        self.assertFalse(release_gate({})['ready'])
+        self.assertFalse(release_gate(evidence(.5,.02))['ready'])
+        self.assertTrue(release_gate(evidence(.1,.2))['ready'])
+        self.assertGreater(release_gate(evidence(.1,.2))['z'],1.96)
+        data=evidence(.1,.2)
+        data['seed42-120m'][0]['actions'][0]['regret_se_bb']=float('nan')
+        with self.assertRaises(ValueError):release_gate(data)
     def test_premium_collapse_is_detected(self):
         data=report('analysis/old_preflop_charts.json') if Path('analysis/old_preflop_charts.json').exists() else report('preflop_charts.json')
         aa=next(r for r in data['BTN RFI']['hands'] if r['hand']=='AA')

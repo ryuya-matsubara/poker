@@ -5,6 +5,7 @@ from analyze_preflop_charts import report
 from analyze_jam import policy_delta,ev_summary
 from validate_preflop import check_chart,check_policy,compare
 from check_convergence import warnings
+from release_gate import release_gate
 
 POS=['UTG RFI','HJ RFI','CO RFI','BTN RFI','SB RFI']
 
@@ -57,6 +58,7 @@ def main():
     # Complete per-infoset metrics are stored separately to keep the summary usable.
     deltas=quality.pop('policy_deltas');write(out/'policy_deltas.json',deltas)
     quality['policy_delta_summary']={k:{x:v[x] for x in ['histories_left','histories_right','histories_shared','infosets','mean_l1','max_action_delta']} for k,v in deltas.items()}
+    quality['release_gate']=release_gate(quality['action_ev'])
     write(Path('analysis/quality.json'),quality)
     write(out/'quality.json',quality)
     with (out/'frequency_169.csv').open('w',newline='') as f:
@@ -66,6 +68,7 @@ def main():
     old=json.loads(Path('analysis/old_spots.json').read_text())
     lines=[Path('analysis/jam_method.md').read_text(),'\n## 最終学習と比較結果\n','seed42/73/101で同じモデルを120Mまで学習。30M/60M/120Mは各seedの同一RNG軌跡から保存した。頻度の事後補正・ハンド例外はない。\n']
     lines+=['### 計算資源\n',table(['seed','120M+checkpoint EV wall time','max RSS GiB'],[[seed,v['elapsed'],f"{v['max_rss_kb']/1048576:.2f}" if v['max_rss_kb'] else 'unknown'] for seed,v in quality['resources'].items()])]
+    lines+=['### 公開前のEV検証\\n',json.dumps(quality['release_gate'],indent=2),'\\n全seedの120M spot/actionを対象にBonferroni補正した同時区間を用いる。MC誤差の範囲で有意に有利な一段の逸脱、または有意に不利なactionの大きな平均頻度を検出した場合はPages公開を止める。閾値は全ハンド共通0.05BBで、頻度は変更しない。指定spot内の検証であり、全NLHEのNash収束保証ではない。\\n']
     latest=quality['action_ev']['seed42-120m']
     rows=[]
     for s in latest:
