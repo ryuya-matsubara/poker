@@ -23,14 +23,23 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+      - name: Verify strategy and UI
+        run: |
+          python3 tools/test_preflop_export.py
+          python3 tools/validate_preflop.py preflop_charts.json --policy preflop_policy.json --seed analysis/runs/seed73-60m.json --half analysis/runs/seed42-30m.json
+          node tools/test_preflop_frontend.cjs
       - name: Configure Pages
         uses: actions/configure-pages@v5
         with:
           enablement: true
+      - name: Stage web application
+        run: |
+          mkdir public
+          cp index.html preflop_charts.json preflop_policy.json public/
       - name: Upload site artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: .
+          path: public
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
