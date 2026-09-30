@@ -22,7 +22,7 @@
 
 ## CFR/MCCFRの定義
 
-相手actionを `q(a)=0.95π(a)+0.05/|A|` でsampleする。traverser actionは全列挙。sampled subtree値にはπ/qを掛ける。到達までのopponent/chance sampling補正をregretに適用し、own reachはregretへ掛けない。平均戦略には `linear_iteration_weight × own_reach / sampled_opponent_reach × π(a)` を加える。chanceは一様な重複なし6人hole dealとrunoutをsampleし、既知のchance sampling項が期待値で相殺する。board、hole card、opponent private stateを戦略判断へ渡さない。
+相手actionを `q(a)=0.95π(a)+0.05/|A|` でsampleする。traverser actionは全列挙。sampled subtree値にはπ/qを掛ける。到達までのopponent/chance sampling補正をregretに適用し、own reachはregretへ掛けない。平均戦略には `linear_iteration_weight × own_reach / sampled_opponent_reach × π(a)` を加える。chanceは一様な重複なし6人hole dealとrunoutをsampleし、既知のchance sampling項が期待値で相殺する。戦略判断はown holeと現在のpublic boardを使う。他playerのhole cardや未来boardを渡さない。
 
 累積regretはsignedで保存し、regret matchingでは正の部分だけを正規化する。全actionが非正ならuniform。sampling correctionのclip、固定bonus、hand-specific penaltyはない。branch間のcommon random numbers用にdecision RNGをcloneしても、次deal/runoutのstreamを巻き戻さないよう、deal・board・decision RNGをepisode seedで分離する。1board/4board、異なる戦略でもdeal streamを同一に保つ。各iterationでpolicyを凍結してから1人のtraverserを巡回更新し、同じinfosetの再訪問で更新途中のpolicyを使わない。checkpoint EV診断は学習RNG/runoutを復元して学習軌跡を変えない。
 
@@ -34,7 +34,7 @@
 
 Postflop tree：check、33%pot、75%pot、all-in。bet facing：fold/call、3×またはmin-raiseを満たすraise、all-in。各street最大1raise。新規bet/raiseへの支払は累積street contributionとの差で計算する。short-all-inは未対応者のcallを要求するが既にactionした人のraise権を再開しない。side pot、fold payoff、all-in call、showdownは上流のchip conservation処理を使い、合法ランダムstate 10,000件のpreflop＋postflopで `sum(payoff)≈0`, stacks≥0, stack+contribution=20BBを検証する。
 
-Preflop/Postflopとも169 rank/suited identityを保持し、private keyはboard-relative made/draw、hole high/low rank、overcards、flush/backdoor count、straight potential、A/K nut/near-nut blockerを保持する。made classifierはtop/non-top pair、overpair/underpair、kickerの粗い強度を区別する。middle/bottom pair、gutshot/open-ended/double-gutshotの全種類は完全には分離せず、rank bands・board bins・straight potentialとの組合せで近似する。完全な1326 suit-labelled identity、全backdoor種類、正確なrange-relative equity/nut advantageは保持しない。nut blockerはboard suitに対するprivate featureであり、相手rangeに対する完全なnut advantageではない。
+Preflop/Postflopとも169 rank/suited identityを保持し、private keyはboard-relative made/draw、hole high/low rank、overcards、flush/backdoor count、straight potential、A/K nut/near-nut blockerを保持する。made classifierはtop/non-top pair、overpair/underpair、kickerの粗い強度を区別する。middle/bottom pair、gutshot/open-ended/double-gutshotの全種類は完全には分離せず、hole ranks・board bins・straight potentialとの組合せで近似する。完全な1326 suit-labelled identity、全backdoor種類、正確なrange-relative equity/nut advantageは保持しない。nut blockerはboard suitに対するprivate featureであり、相手rangeに対する完全なnut advantageではない。
 
 Public keyはboard rank/texture、position/actor、active/folded/all-in masks、preflop pot type(first/last aggressor, raise count)、street bettor/raise/acted/pending state、直前2streetのaggressor summaries、pot bucket、各active opponentのstack band、SPR、to-call由来pot odds16段階、bet/pot比を持つ。pot bandsはhalfBB chipsで3/6/10/16/24/40/64/96/160/240、stack bandsは0/4/10/20/40、SPRは0/0.5/1/2/4/8。正確なbet合法性/stack/side pot/payoffはbucket化しない。exact action sequence全体は保持せず戦略上のbetting stateへ集約する。random hash collision、memory eviction、固定realization係数は用いない。
 
