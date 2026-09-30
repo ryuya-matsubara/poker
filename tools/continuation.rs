@@ -1,6 +1,6 @@
 //! Bounded NLHE continuation. Signed external-sampling regrets and
 //! importance-corrected, own-reach-weighted averaging; no payoff bonuses.
-use super::{PreflopState,PreflopTrainer,PreflopAction,PreflopInfoKey,RegretEntry,NUM_PLAYERS};
+use super::{PreflopState,PreflopTrainer,PreflopInfoKey,RegretEntry};
 use crate::card::{rank,suit,Card,Hand};
 use crate::iso::canonical_hand;
 use rand::Rng;
@@ -47,7 +47,7 @@ fn apply(n:&Node,p:usize,a:i32,index:usize)->Node {
 fn hash<T:Hash>(x:&T)->u64 {let mut h=DefaultHasher::new();x.hash(&mut h);h.finish()}
 fn key(n:&Node,p:usize,a:&[i32])->InfoKey {
  let legacy=super::continuation_legacy::visible_features(n.state.holes[p],n.board,n.street);
- if !rich() {return InfoKey(hash(&(legacy,p,n.street,actionable(&n.state),n.target,n.raises,n.history,n.state.n_raises)) as u128);}
+ if !rich() {return InfoKey(hash(&(legacy,p,n.street,actionable(&n.state),n.target,n.raises,n.history,n.state.n_raises,a)) as u128);}
  let hole:Vec<_>=n.state.holes[p].iter().collect();let hi=hole.iter().map(|&c|rank(c)).max().unwrap();let lo=hole.iter().map(|&c|rank(c)).min().unwrap();
  let mut br=Vec::new();let mut suits=[0u8;4];let mut mask=0u16;for c in n.board.iter(){br.push(rank(c));suits[suit(c) as usize]+=1;mask|=1<<rank(c);}br.sort();
  let over=hole.iter().filter(|&&c|rank(c)>*br.last().unwrap()).count() as u8;
@@ -106,7 +106,7 @@ pub(super) fn train(t:&mut PreflopTrainer,s:&PreflopState,tr:u8,h:&mut Vec<u8>)-
 // not a uniform UTG range. Each action reuses the deal, board and RNG seed.
 pub(super) fn diagnose(t:&mut PreflopTrainer,path:&str,samples:usize) {
  use rand::SeedableRng;use rand::rngs::SmallRng;use serde_json::json;
- let mut out=Vec::new();
+ let saved_rng=t.rng.clone();let saved_board=t.shared_runout;let mut out=Vec::new();
  for (spot,label) in [("BTN RFI","AQo"),("BTN RFI","AA"),("BTN RFI","A5s"),("BTN RFI","22"),("BTN RFI","Q5o"),("UTG 2BB -> BTN","53s"),("UTG 2BB -> BTN","AQo")] {
   let mut rng=SmallRng::seed_from_u64(9127);let bucket=(0..169u8).find(|&i|crate::iso::CanonicalHand::from_index(i).to_string()==label).unwrap();let mut sums=Vec::<f64>::new();let mut squares=Vec::<f64>::new();let mut names=Vec::new();let mut probabilities=Vec::new();let mut gap_sum=0.;let mut gap_sq=0.;let mut accepted=0;let mut attempts=0;
   while accepted<samples&&attempts<samples*20000 {attempts+=1;t.rng=rng.clone();let holes=t.deal_holes();rng=t.rng.clone();let hc:Vec<_>=holes[3].iter().collect();if canonical_hand(hc[0],hc[1]).index()!=bucket{continue;}
@@ -118,7 +118,7 @@ pub(super) fn diagnose(t:&mut PreflopTrainer,path:&str,samples:usize) {
   }
   let n=accepted as f64;let se=|sum:f64,sq:f64|((sq-sum*sum/n)/(n-1.)/n).max(0.).sqrt();let rows:Vec<_>=(0..sums.len()).map(|i|{let mean=sums[i]/n;let err=se(sums[i],squares[i]);json!({"action":names[i],"probability":probabilities[i],"mean_bb":mean,"se_bb":err,"ci95_bb":[mean-1.96*err,mean+1.96*err],"samples":accepted})}).collect();out.push(json!({"spot":spot,"hand":label,"actions":rows,"jam_minus_best_small_per_deal_bb":gap_sum/n,"paired_se_bb":se(gap_sum,gap_sq),"attempts":attempts}));
  }
- std::fs::write(path,serde_json::to_string_pretty(&out).unwrap()).unwrap();
+ std::fs::write(path,serde_json::to_string_pretty(&out).unwrap()).unwrap();t.rng=saved_rng;t.shared_runout=saved_board;
 }
 
 pub(super) fn terminal_value(t:&mut PreflopTrainer,s:&PreflopState,tr:u8)->f32 {if mode()=="raw" {s.payoff_showdown(t.shared_runout.iter().fold(Hand::new(),|h,&c|h.add(c)))[tr as usize]}else{super::continuation_legacy::terminal_value(t,s,tr)}}
