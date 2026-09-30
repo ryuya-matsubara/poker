@@ -3,6 +3,10 @@ on:
   push:
     branches: [solver-jam-final]
     paths: [.github/workflows/prepare-jam-release.yml]
+  workflow_run:
+    workflows: ['Train rich NLHE continuation and measure convergence v7']
+    types: [completed]
+    branches: [solver-jam-final]
   workflow_dispatch:
     inputs:
       training_run:
@@ -21,6 +25,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   publish:
+    if: github.event_name != 'workflow_run' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_repository.full_name == github.repository)
     runs-on: ubuntu-latest
     timeout-minutes: 350
     steps:
@@ -29,29 +34,30 @@ jobs:
           ref: solver-jam-final
       - name: Wait for final training and regression tests
         env:
-          TRAINING_RUN: ${{ inputs.training_run || '36677245310' }}
+          TRAINING_RUN: ${{ inputs.training_run || github.event.workflow_run.id || '36677245310' }}
+          ABLATION_RUN: ${{ inputs.ablation_run || '36677623500' }}
         uses: actions/github-script@v7
         with:
           script: |
-            for (let attempt=0; attempt<1500; attempt++) {
+            for (let attempt=0; attempt<660; attempt++) {
               const result=await github.rest.actions.getWorkflowRun({...context.repo,run_id:Number(process.env.TRAINING_RUN)});
               if (result.data.status==='completed') {
                 if (result.data.conclusion!=='success') throw new Error('Final training/test workflow did not pass');
-                const ablation=await github.rest.actions.getWorkflowRun({...context.repo,run_id:36677623500});
-                if(ablation.data.status!=='completed') {await new Promise(resolve=>setTimeout(resolve,10000));continue;}
+                const ablation=await github.rest.actions.getWorkflowRun({...context.repo,run_id:Number(process.env.ABLATION_RUN)});
+                if(ablation.data.status!=='completed') {await new Promise(resolve=>setTimeout(resolve,30000));continue;}
                 if(ablation.data.conclusion!=='success') throw new Error('Required matched ablations failed');
                 return;
               }
-              await new Promise(resolve=>setTimeout(resolve,10000));
+              await new Promise(resolve=>setTimeout(resolve,30000));
             }
-            throw new Error('Final training is still running');
+            throw new Error('Training wait deadline reached; no unvalidated data was promoted. Retry after training completes.');
       - name: Refresh verification sources after training wait
         uses: actions/checkout@v4
         with:
           ref: solver-jam-final
       - uses: actions/download-artifact@v4
         with:
-          run-id: ${{ inputs.training_run || '36677245310' }}
+          run-id: ${{ inputs.training_run || github.event.workflow_run.id || '36677245310' }}
           github-token: ${{ github.token }}
           pattern: jam-final-seed*
           path: runs
@@ -69,7 +75,7 @@ jobs:
           path: control
       - uses: actions/download-artifact@v4
         with:
-          run-id: ${{ inputs.training_run || '36677245310' }}
+          run-id: ${{ inputs.training_run || github.event.workflow_run.id || '36677245310' }}
           github-token: ${{ github.token }}
           pattern: jam-blueprints-seed*
           path: blueprints
@@ -82,10 +88,12 @@ jobs:
           done
       - name: Record immutable training source
         id: training-source
+        env:
+          TRAINING_RUN: ${{ inputs.training_run || github.event.workflow_run.id || '36677245310' }}
         uses: actions/github-script@v7
         with:
           script: |
-            const r=await github.rest.actions.getWorkflowRun({...context.repo,run_id:36677245310});
+            const r=await github.rest.actions.getWorkflowRun({...context.repo,run_id:Number(process.env.TRAINING_RUN)});
             core.setOutput('sha',r.data.head_sha);
             const fs=require('fs'),crypto=require('crypto');
             const manifest={training_commit:r.data.head_sha,upstream_commit:'4ade6a9e15a841c41867afde1258b9d110cd6fb1',files:{}};
