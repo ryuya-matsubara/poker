@@ -64,6 +64,8 @@ def main():
     history_mass = defaultdict(float)
     scale = max(1, iterations / 2)
     for history, _, cum in first:
+        if not all(math.isfinite(x) and x >= 0 for x in cum):
+            raise ValueError('Non-finite or negative cumulative strategy')
         history_mass[history] += sum(cum) / scale
     selected = set(sorted(history_mass, key=history_mass.get, reverse=True)[:args.max_histories])
     # Importance-weighted average mass is not visitation frequency. Retain every

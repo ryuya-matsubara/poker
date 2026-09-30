@@ -8,11 +8,11 @@ on:
       training_run:
         description: 'Validated 3-seed 30/60/120M training run'
         required: true
-        default: '36674454225'
+        default: '36675608008'
       ablation_run:
         description: 'Matched 9-model 30M ablation run'
         required: true
-        default: '36674487519'
+        default: '36675637401'
 permissions:
   contents: write
   actions: read
@@ -29,7 +29,7 @@ jobs:
           ref: solver-jam-final
       - name: Wait for final training and regression tests
         env:
-          TRAINING_RUN: ${{ inputs.training_run || '36674454225' }}
+          TRAINING_RUN: ${{ inputs.training_run || '36675608008' }}
         uses: actions/github-script@v7
         with:
           script: |
@@ -37,7 +37,7 @@ jobs:
               const result=await github.rest.actions.getWorkflowRun({...context.repo,run_id:Number(process.env.TRAINING_RUN)});
               if (result.data.status==='completed') {
                 if (result.data.conclusion!=='success') throw new Error('Final training/test workflow did not pass');
-                const ablation=await github.rest.actions.getWorkflowRun({...context.repo,run_id:36674487519});
+                const ablation=await github.rest.actions.getWorkflowRun({...context.repo,run_id:36675637401});
                 if(ablation.data.status!=='completed') {await new Promise(resolve=>setTimeout(resolve,10000));continue;}
                 if(ablation.data.conclusion!=='success') throw new Error('Required matched ablations failed');
                 return;
@@ -51,25 +51,25 @@ jobs:
           ref: solver-jam-final
       - uses: actions/download-artifact@v4
         with:
-          run-id: ${{ inputs.training_run || '36674454225' }}
+          run-id: ${{ inputs.training_run || '36675608008' }}
           github-token: ${{ github.token }}
           pattern: jam-final-seed*
           path: runs
       - uses: actions/download-artifact@v4
         with:
-          run-id: ${{ inputs.ablation_run || '36674487519' }}
+          run-id: ${{ inputs.ablation_run || '36675637401' }}
           github-token: ${{ github.token }}
           pattern: jam-*-seed42-30m
           path: ablation
       - uses: actions/download-artifact@v4
         with:
-          run-id: 36671589403
+          run-id: 36675861053
           github-token: ${{ github.token }}
           name: jam-unclipped-control-seed42-30m
           path: control
       - uses: actions/download-artifact@v4
         with:
-          run-id: ${{ inputs.training_run || '36674454225' }}
+          run-id: ${{ inputs.training_run || '36675608008' }}
           github-token: ${{ github.token }}
           pattern: jam-blueprints-seed*
           path: blueprints
@@ -80,10 +80,17 @@ jobs:
               python3 tools/inspect_blueprint.py blueprints/jam-blueprints-seed${seed}/${length}m-blueprint.bin runs/jam-final-seed${seed}/${length}m-ev.json
             done
           done
+      - name: Record immutable training source
+        id: training-source
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const r=await github.rest.actions.getWorkflowRun({...context.repo,run_id:36675608008});
+            core.setOutput('sha',r.data.head_sha);
       - name: Generate and verify exact strategy
         run: |
           python3 -m py_compile tools/*.py
-          python3 tools/promote_jam.py runs ablation --control control
+          python3 tools/promote_jam.py runs ablation --control control --training-source ${{ steps.training-source.outputs.sha }}
           python3 tools/test_preflop_export.py
           python3 tools/test_solver_analysis.py
           node tools/test_preflop_frontend.cjs
