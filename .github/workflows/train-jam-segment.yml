@@ -1,0 +1,71 @@
+name: Resumable joint CFR segment
+on:
+  workflow_call:
+    inputs:
+      start:
+        type: number
+        required: true
+      end:
+        type: number
+        required: true
+permissions:
+  contents: read
+  actions: read
+jobs:
+  train:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    strategy:
+      fail-fast: false
+      matrix:
+        seed: [42, 73, 101]
+    env:
+      POKER_MODEL: full
+      POKER_CHECKPOINT_PREFIX: experiment
+    steps:
+      - uses: actions/checkout@v4
+      - run: bash tools/provision_solver_memory.sh
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Build identical pinned game with portable complete checkpoints
+        run: |
+          git clone https://github.com/exinori/DCFR-SOLVER.git solver
+          git -C solver checkout 4ade6a9e15a841c41867afde1258b9d110cd6fb1
+          python3 tools/upgrade_solver.py solver/src
+          python3 tools/add_resumable_solver.py solver/src
+      - uses: actions/download-artifact@v4
+        if: inputs.start > 0
+        with:
+          name: joint-${{ inputs.start }}-seed${{ matrix.seed }}
+          path: resume
+      - name: Train one segment and persist all joint state
+        env:
+          SEGMENT_START: ${{ inputs.start }}
+          SEGMENT_END: ${{ inputs.end }}
+          SOLVER_SEED: ${{ matrix.seed }}
+        run: |
+          mkdir -p experiment
+          if [ "$SEGMENT_START" -gt 0 ]; then
+            export POKER_RESUME="$PWD/resume/joint-checkpoint.gz"
+          fi
+          /usr/bin/time -v cargo run --release --manifest-path solver/Cargo.toml -- preflop --iterations "$SEGMENT_END" --seed "$SOLVER_SEED" --open-size 5 --sb-open-size 6 --bet3-size 14 --bet4-size 28 --oop-pot-tax 0 --output experiment/final.bin --chart-output experiment/final-chart.json 2>experiment/training.log
+          python3 tools/export_preflop_policy.py experiment/final.bin experiment/final-policy.json --max-histories 300 --min-visits 30
+          python3 tools/analyze_preflop_charts.py experiment/final-chart.json --output experiment/final-frequency.json
+          sha256sum tools/continuation.rs tools/continuation_legacy.rs tools/upgrade_solver.py tools/patch_solver_base.py tools/add_resumable_solver.py tools/trainer_checkpoint.rs > experiment/source-sha256.txt
+          git rev-parse HEAD > experiment/source-commit.txt
+      - uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: joint-${{ inputs.end }}-seed${{ matrix.seed }}
+          path: experiment/joint-checkpoint.gz
+          compression-level: 0
+          retention-days: 7
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: measurements-${{ inputs.end }}-seed${{ matrix.seed }}
+          path: |
+            experiment/*.json
+            experiment/*.txt
+            experiment/training.log
+            experiment/*blueprint.bin
+          compression-level: 6

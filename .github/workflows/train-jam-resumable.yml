@@ -1,0 +1,52 @@
+name: Verify and train resumable joint CFR v8
+on:
+  push:
+    branches: [solver-jam-final]
+    paths: [.github/workflows/train-jam-resumable.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Require exact split-run equivalence before training
+        run: |
+          git clone https://github.com/exinori/DCFR-SOLVER.git solver
+          git -C solver checkout 4ade6a9e15a841c41867afde1258b9d110cd6fb1
+          python3 tools/upgrade_solver.py solver/src
+          python3 tools/add_resumable_solver.py solver/src
+          POKER_MODEL=full cargo test --release --lib --manifest-path solver/Cargo.toml preflop:: -- --nocapture
+          python3 tools/test_preflop_export.py
+          python3 tools/test_solver_analysis.py
+  m30:
+    needs: verify
+    uses: ./.github/workflows/train-jam-segment.yml
+    with: {start: 0, end: 30000000}
+  m60:
+    needs: m30
+    uses: ./.github/workflows/train-jam-segment.yml
+    with: {start: 30000000, end: 60000000}
+  m80:
+    needs: m60
+    uses: ./.github/workflows/train-jam-segment.yml
+    with: {start: 60000000, end: 80000000}
+  m90:
+    needs: m80
+    uses: ./.github/workflows/train-jam-segment.yml
+    with: {start: 80000000, end: 90000000}
+  m100:
+    needs: m90
+    uses: ./.github/workflows/train-jam-segment.yml
+    with: {start: 90000000, end: 100000000}
+  m110:
+    needs: m100
+    uses: ./.github/workflows/train-jam-segment.yml
+    with: {start: 100000000, end: 110000000}
+  m120:
+    needs: m110
+    uses: ./.github/workflows/train-jam-segment.yml
+    with: {start: 110000000, end: 120000000}
