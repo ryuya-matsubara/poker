@@ -1,0 +1,75 @@
+{
+  "training_run_id": 36649555305,
+  "selected_seed": 42,
+  "iterations": 60000000,
+  "model_sha256": "a00f191b526ae35f68483182b712dd12c2c97464c562169b52812999e450041d",
+  "rfi": {
+    "UTG RFI": {
+      "open": 0.21184113871915536,
+      "limp": 0.0
+    },
+    "HJ RFI": {
+      "open": 0.2175362575837104,
+      "limp": 0.0
+    },
+    "CO RFI": {
+      "open": 0.23944258345429864,
+      "limp": 0.0
+    },
+    "BTN RFI": {
+      "open": 0.2894805703634993,
+      "limp": 0.0
+    },
+    "SB RFI": {
+      "open": 0.2970657321538462,
+      "limp": 0.36669661615837107
+    }
+  },
+  "seed_stability": {
+    "UTG RFI": {
+      "combo_weighted_rms": 0.03570845433777387,
+      "total_open_difference": 0.00016073394901960913
+    },
+    "HJ RFI": {
+      "combo_weighted_rms": 0.02639107502370929,
+      "total_open_difference": 0.0022846610761689534
+    },
+    "CO RFI": {
+      "combo_weighted_rms": 0.032088676989364295,
+      "total_open_difference": 0.002203595299849176
+    },
+    "BTN RFI": {
+      "combo_weighted_rms": 0.06917320105542603,
+      "total_open_difference": 0.007430137323076902
+    },
+    "SB RFI": {
+      "combo_weighted_rms": 0.12496806151949066,
+      "total_open_difference": 0.0046384634177978334
+    }
+  },
+  "iteration_stability": {
+    "UTG RFI": {
+      "combo_weighted_rms": 0.1065261327453661,
+      "total_open_difference": 0.04537674836772246
+    },
+    "HJ RFI": {
+      "combo_weighted_rms": 0.10533426122226078,
+      "total_open_difference": 0.04807490189502264
+    },
+    "CO RFI": {
+      "combo_weighted_rms": 0.09561241657727151,
+      "total_open_difference": 0.04509009159758676
+    },
+    "BTN RFI": {
+      "combo_weighted_rms": 0.08235764190877341,
+      "total_open_difference": 0.035965135302865714
+    },
+    "SB RFI": {
+      "combo_weighted_rms": 0.09994940798033161,
+      "total_open_difference": 0.03505045159276016
+    }
+  },
+  "range_caveats": [
+    "BTN RFI: outside loose external prior; no identical independent benchmark"
+  ]
+}

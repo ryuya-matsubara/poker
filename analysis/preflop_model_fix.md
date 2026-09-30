@@ -43,3 +43,76 @@ upstreamの当該preflop trainerはexternal-sampling、regretの非負化、iter
 [GTO Wizard: How Stack Sizes Change Your Range](https://blog.gtowizard.com/how-stack-sizes-change-your-range/)は20BBで2BB openや浅いstackの特徴を説明するが、例には1BB anteがある。[Upswing: Open-Raising with a Short Stack](https://upswingpoker.com/open-raising-with-a-short-stack-tournaments/)もtournament条件。同じ6-max/20BB/no-ante/no-rakeと同じbet abstractionの全169クラスの独立解は公開資料で確認できず、完全一致の精度検証は行っていない。外部データはコードへの入力やハンド別頻度の指定に使っていない。
 
 [Brown & Sandholm, Science 2019](https://doi.org/10.1126/science.aay2400)が説明する通り、2人zero-sumのCFRにあるNash収束保証を6人へそのまま適用できない。以下は経験的な安定性検証で、exploitabilityやGTO Wizard同等精度の証明ではない。実ゲームのpostflop CPU自体は既存の簡易推定で、今回の変更はpreflop戦略生成のcontinuationを改善するもの。
+
+## 最終学習と全169クラスの比較
+
+公開データはseed42・6,000万iteration。[全169ハンド×5位置の各行動頻度と比較条件](final_frequency_169.csv)、[検証の数値](quality.json)を保存した。
+
+| 条件 | UTG | HJ/MP | CO | BTN | SB raise/shove | SB limp |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| raw-mixed-open, seed42, 30m | 25.5% | 26.0% | 27.2% | 31.3% | 35.4% | 23.3% |
+| cfr-fixed-2.5bb-diagnostic, seed42, 30m | 21.5% | 22.6% | 24.7% | 29.0% | 30.3% | 36.5% |
+| joint-final, seed42, 30m | 25.7% | 26.6% | 28.5% | 32.5% | 33.2% | 28.4% |
+| joint-final, seed42, 60m | 21.2% | 21.8% | 23.9% | 28.9% | 29.7% | 36.7% |
+| joint-final, seed73, 60m | 21.2% | 22.0% | 24.2% | 29.7% | 30.2% | 36.5% |
+
+raw比較は同じ20BB・seed42・30m・2/2.5BB＋open shove・1 board sampleで、終端だけをraw showdownに戻したもの。fixed-2.5bbはベット額の診断用旧版CFRで、最終版のマルチウェイ順/最小ベット修正前。最終版との全差をベット額だけに帰属させない。
+
+| 位置 | seed差の加重RMS | seed差の総open差 | 学習量差の加重RMS | 学習量差の総open差 |
+| --- | ---: | ---: | ---: | ---: |
+| UTG RFI | 0.036 | 0.0% | 0.107 | 4.5% |
+| HJ RFI | 0.026 | 0.2% | 0.105 | 4.8% |
+| CO RFI | 0.032 | 0.2% | 0.096 | 4.5% |
+| BTN RFI | 0.069 | 0.7% | 0.082 | 3.6% |
+| SB RFI | 0.125 | 0.5% | 0.100 | 3.5% |
+
+RMSは1,326コンボで加重した各ハンドopen頻度の差。sanity checkはRMS≤0.16・総open差≤8ポイント、premium/weak、suited/offsuit、位置、確率、20BBとblindを検査する。これは精度やNash収束の証明ではない。境界ハンドに残る揺れもCSVで確認できる。
+
+外部の条件が違う参考範囲から外れた位置：BTN RFI: outside loose external prior; no identical independent benchmark。頻度を参考範囲へ強制補正していない。
+
+### BTN RFI
+
+| ハンド | Fold | 2BB Raise | 2.5BB Raise | Shove |
+| --- | ---: | ---: | ---: | ---: |
+| 32o | 98.0% | 0.4% | 0.4% | 1.2% |
+| 54o | 97.1% | 0.7% | 0.6% | 1.7% |
+| 65o | 96.7% | 0.7% | 0.7% | 1.9% |
+| 76o | 96.2% | 1.1% | 0.8% | 1.9% |
+| T5o | 97.0% | 0.7% | 0.7% | 1.6% |
+| J2o | 97.0% | 0.7% | 0.6% | 1.7% |
+| J5o | 96.3% | 0.9% | 0.9% | 2.0% |
+| Q2o | 96.9% | 0.8% | 0.7% | 1.7% |
+| Q5o | 96.2% | 0.9% | 0.9% | 2.0% |
+| Q8o | 93.5% | 1.7% | 2.0% | 2.8% |
+| K2o | 95.3% | 1.1% | 0.9% | 2.7% |
+| A2o | 86.4% | 4.0% | 3.0% | 6.6% |
+| 22 | 76.6% | 2.5% | 3.5% | 17.4% |
+| A5s | 3.2% | 17.3% | 13.8% | 65.7% |
+| Q5s | 85.9% | 4.1% | 4.2% | 5.8% |
+
+### UTG RFI
+
+| ハンド | Fold | 2BB Raise | 2.5BB Raise | Shove |
+| --- | ---: | ---: | ---: | ---: |
+| 22 | 95.6% | 1.0% | 1.2% | 2.3% |
+| 55 | 11.5% | 46.3% | 22.4% | 19.8% |
+| 77 | 0.7% | 58.3% | 27.4% | 13.6% |
+| 99 | 0.2% | 46.5% | 35.4% | 18.0% |
+| JTs | 5.7% | 28.5% | 42.5% | 23.3% |
+| QJs | 1.2% | 53.3% | 19.2% | 26.3% |
+| KJs | 0.9% | 28.0% | 58.8% | 12.3% |
+| A5s | 3.6% | 21.4% | 29.1% | 45.9% |
+| A9s | 1.3% | 11.6% | 63.9% | 23.1% |
+| AJo | 0.2% | 44.3% | 38.8% | 16.7% |
+| AQo | 0.1% | 27.0% | 49.4% | 23.5% |
+| AKs | 0.2% | 14.0% | 25.7% | 60.1% |
+| AKo | 0.1% | 48.2% | 31.9% | 19.8% |
+
+### 計算時間と検証
+
+- raw / 30m: 時間 6:27.86, 最大RSS 1410 MiB。
+- joint / 30m: 時間 6:47.39, 最大RSS 1619 MiB。
+- joint / 60m: 時間 22:16.61, 最大RSS 1673 MiB。
+- joint seed73 / 60m: 時間 22:54.75, 最大RSS 1675 MiB。
+
+Q5o bucket139、UTG→MP→CO Fold後のBTN履歴、2/2.5BBとAll-inのaction order、export確率合計、通常位置RFIにCall/Limpがないこと、全員20BB・SB0.5BB/BB1BB、損益保存、未来カードを特徴に入れないこと、キッカー、マルチウェイ応答順、最小1BBベットを自動検証した。
