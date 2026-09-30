@@ -1,5 +1,5 @@
 """Publish measured strategies, not calibrated ranges. Run after all artifacts arrive."""
-import argparse,csv,json,shutil,hashlib
+import argparse,csv,json,shutil,hashlib,re
 from pathlib import Path
 from analyze_preflop_charts import report
 from analyze_jam import policy_delta,ev_summary
@@ -20,9 +20,14 @@ def main():
     final=args.runs/'jam-final-seed42'; charts=report(final/'120m-chart.json');check_chart(charts)
     check_policy(final/'120m-policy.json',charts)
     quality={'conditions':{'players':6,'effective_stack_bb':20,'sb_bb':.5,'bb_bb':1,'ante':0,'rake':0},'model_sha256':hashlib.sha256(Path('tools/continuation.rs').read_bytes()).hexdigest(),
-             'seed_stability':{},'iteration_stability':{},'policy_deltas':{},'action_ev':{},'ablation':{},'training_source_commit':args.training_source,'nashconv':None,'nashconv_reason':'Conditional one-step deviations only; not a full best response or exploitability certificate.'}
+             'seed_stability':{},'iteration_stability':{},'resources':{},'policy_deltas':{},'action_ev':{},'ablation':{},'training_source_commit':args.training_source,'nashconv':None,'nashconv_reason':'Conditional one-step deviations only; not a full best response or exploitability certificate.'}
     for seed in [42,73,101]:
         folder=args.runs/f'jam-final-seed{seed}'
+        log=(folder/'training.log').read_text()
+        rss=re.search(r'Maximum resident set size \(kbytes\): (\d+)',log)
+        elapsed=re.search(r'Elapsed \(wall clock\) time .*?: (.+)',log)
+        quality['resources'][str(seed)]={'max_rss_kb':int(rss.group(1)) if rss else None,'elapsed':elapsed.group(1) if elapsed else None}
+        shutil.copy(folder/'training.log',out/f'seed{seed}-training.log')
         for length in [30,60,120]:
             chart=folder/f'{length}m-chart.json';policy=folder/f'{length}m-policy.json';ev=folder/f'{length}m-ev.json'
             check_chart(report(chart));check_policy(policy,report(chart))
@@ -60,6 +65,7 @@ def main():
             for h in info['hands']:w.writerow([pos,h['hand'],h['combos'],h['open'],h['limp'],*[h['actions'].get(a,0) for a in ['fold','raise 4','raise 5','allin']]])
     old=json.loads(Path('analysis/old_spots.json').read_text())
     lines=[Path('analysis/jam_method.md').read_text(),'\n## 最終学習と比較結果\n','seed42/73/101で同じモデルを120Mまで学習。30M/60M/120Mは各seedの同一RNG軌跡から保存した。頻度の事後補正・ハンド例外はない。\n']
+    lines+=['### 計算資源\n',table(['seed','120M+checkpoint EV wall time','max RSS GiB'],[[seed,v['elapsed'],f"{v['max_rss_kb']/1048576:.2f}" if v['max_rss_kb'] else 'unknown'] for seed,v in quality['resources'].items()])]
     latest=quality['action_ev']['seed42-120m']
     rows=[]
     for s in latest:
@@ -74,7 +80,7 @@ def main():
     for mode,v in quality['ablation'].items():
         aq=next(s for s in v['ev'] if s['spot']=='BTN RFI' and s['hand']=='AQo');weak=next(s for s in v['ev'] if s['hand']=='53s');getjam=lambda s:next((a['probability'] for a in s['actions'] if a['action']=='allin'),0)
         rows.append([mode,*[f"{100*v['rfi'][pos]['open']:.2f}%" for pos in POS],f"{100*getjam(aq):.2f}%",f"{100*getjam(weak):.2f}%",f"{aq['jam_minus_best_small_bb']:.3f}" if aq['jam_minus_best_small_bb'] is not None else 'n/a'])
-    lines+=['\n### 同一seed42・30Mの9条件ablation\n',table(['model',*POS,'AQo jam','53s jam','AQo jam-small EV BB'],rows),'\n全169ハンド・position別open/shove率・主要hand EVは `jam/ablation/*/frequency.json` と `ev.json` に保存。raw/nojamは旧clipped algorithmも維持し、signedはsigned regret+importance averagingを併用する。richer/raiseの相互作用をfullで確認する。chanceは4board/iterationなので同じiterationでも約4倍のchance作業量。sizesは3bet5/7BB、4bet jamのみ。\n']
+    lines+=['\n### 同一seed42・30Mの9条件ablation\n',table(['model',*POS,'AQo jam','53s jam','AQo jam-small EV BB'],rows),'\n全169ハンド・position別open/shove率・主要hand EVは `jam/ablation/*/frequency.json` と `ev.json` に保存。raw/nojamは旧clipped algorithmも維持し、signedはsigned regret+importance averagingを併用する。richer/raiseの相互作用をfullで確認する。chanceは2board/iterationなので同じiterationでも約2倍のchance作業量。sizesは3bet5/7BB、4bet jamのみ。\n']
     rows=[]
     for seed in [42,73,101]:
         for length in [30,60,120]:
