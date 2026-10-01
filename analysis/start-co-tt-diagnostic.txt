@@ -1,0 +1,3 @@
+Evaluate 6-max 20BB, SB0.5BB/BB1BB, no ante/rake: UTG fold, MP raise to 2.5BB, CO TT.
+Load compatible complete v8 joint checkpoints seed42 80M, seed73 95M, seed101 84M. Perform zero further training iterations. Conditional opponent ranges and shared deal/runout for action comparisons; 10000 then 40000 samples/action.
+Measure fold, call, raise to 7BB, all-in EV, SE and paired jam advantage. This is a frozen approximate-policy evaluation, not a proof of GTO or a new equilibrium. Do not change deployed strategy or restart general training.
