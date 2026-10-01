@@ -18,14 +18,14 @@
 
 計算上のベット候補はオープン2BB・2.5BB（SBは3BB）、3ベット7BB、4ベット14BB、オープンを含むオールインです。これに合わせて画面のプリフロップレイズ候補も調整しています。
 
-計算は公開MITライセンスの [DCFR-SOLVER](https://github.com/exinori/DCFR-SOLVER) のコミット `4ade6a9e15a841c41867afde1258b9d110cd6fb1` を使用し、全員のスタックを20BBにし、固定OOP補正を廃止します。再学習ではプリフロップと限定したFlop/Turn/Riverを一緒に学習し、seed42・73・101それぞれの3,000万/6,000万/1億2,000万iterationを比較します。生成した戦略データは全ての浅い履歴と頻出の深い履歴を抽出して、このリポジトリに保存します。ゲーム中のアクションではサーバーや再学習は不要です。
+計算は公開MITライセンスの [DCFR-SOLVER](https://github.com/exinori/DCFR-SOLVER) のコミット `4ade6a9e15a841c41867afde1258b9d110cd6fb1` を使用し、全員のスタックを20BBにし、固定OOP補正を廃止します。プリフロップと限定したFlop/Turn/Riverを一緒に学習しました。120Mまでの計画はユーザー指示により中止し、保存済みのseed42 80M・seed73 95M・seed101 84Mを採用・比較しています。各seedの60Mからの変化も記録しています。生成した戦略データは全ての浅い履歴と頻出の深い履歴を抽出して、このリポジトリに保存します。ゲーム中のアクションではサーバーや再学習は不要です。
 
 **学習モデル：** 各ストリートでCheck、1/3・3/4 POT Bet、All-in、Call、Fold、最大1段のRaiseを学習します。signed external-sampling MCCFRを使い、相手actionのsampling importance補正とown-reachを含む平均戦略を計算します。iteration内のpolicyは凍結します。preflop/postflopとも169 rank/suited identityを保持し、postflop private keyはboard-relative made/draw、overcard/kicker、flush/backdoor、nut blockerを保持し、public keyはpot/各stack/SPR/pot odds/bet比、位置、betting rights、preflop pot typeをまとめます。exact public history全体と1326 suit comboは保存しません。戦略の判断には相手の非公開カードと未来ボードを使いません。固定position tax、手書きrange、hand-specific rule、頻度の事後補正はありません。
 
 **診断：** 凍結した平均戦略に対してBTN AQo/AA/A5s/22/Q5o、UTG2BB→BTN53s/AQoの各action EVをBBで測ります。相手rangeはprior public actionで条件付け、action間でdeal/runout/RNGを共有します。mean/SE/95%区間、paired jam差、全169ハンドのposition別open/shove、9条件ablation、seed/iteration差、per-infoset deltaを公開します。これはNashConvではありません。
 
 
-**精度の範囲：** 独立seed・学習量・全169ハンド・suited/offsuit・位置・20BBとblind・損益・JSON/UI対応を検証しています。6人・imperfect-recall abstractionでの安定性を検査したもので、全NLHEのNash収束やGTO Wizardと同等の精度を証明したものではありません。6人でのCFRのNash収束は一般には保証されません（[Brown & Sandholm, Science 2019](https://doi.org/10.1126/science.aay2400)）。実ゲームのポストフロップCPUと表にないプリフロップは簡易レンジと最大1,000回のモンテカルロ持分推定を使います。アクション別EVの表示ではありません。CPUの行動前は1.4〜2.3秒待ちます。
+**精度の範囲：** JSON/UI対応と出力・ソースの一致は検証済みです。複数seedと異なる学習量を比較し、SBのseed差とseed101のQ5s/Q5oの不自然な関係を検出しました。公開seed42のUTG openに対するBTN AQoにも有意なaction EV不整合が残ります。正式な科学的リリース判定は未通過です。6人・imperfect-recall abstractionでの安定性を検査したもので、全NLHEのNash収束やGTO Wizardと同等の精度を証明したものではありません。6人でのCFRのNash収束は一般には保証されません（[Brown & Sandholm, Science 2019](https://doi.org/10.1126/science.aay2400)）。実ゲームのポストフロップCPUと表にないプリフロップは簡易レンジと最大1,000回のモンテカルロ持分推定を使います。アクション別EVの表示ではありません。CPUの行動前は1.4〜2.3秒待ちます。
 
 [全ハンドの頻度・比較実験・検証](analysis/preflop_model_fix.md) と [固定OOP補正の比較](analysis/tax_sensitivity.md) を公開しています。
 
