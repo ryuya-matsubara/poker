@@ -1,0 +1,358 @@
+[1m[92m    Updating[0m crates.io index
+[1m[92m     Locking[0m 6 packages to latest compatible versions
+[1m[92m      Adding[0m adler2 v2.0.1
+[1m[92m      Adding[0m crc32fast v1.5.2
+[1m[92m      Adding[0m flate2 v1.1.10
+[1m[92m      Adding[0m miniz_oxide v0.9.1
+[1m[92m      Adding[0m simd-adler32 v0.3.10
+[1m[92m      Adding[0m zlib-rs v0.6.8
+[1m[92m Downloading[0m crates ...
+[1m[92m  Downloaded[0m adler2 v2.0.1
+[1m[92m  Downloaded[0m anstyle v1.0.13
+[1m[92m  Downloaded[0m anstream v0.6.21
+[1m[92m  Downloaded[0m anstyle-parse v0.2.7
+[1m[92m  Downloaded[0m anstyle-query v1.1.5
+[1m[92m  Downloaded[0m proc-macro2 v1.0.106
+[1m[92m  Downloaded[0m rand_chacha v0.3.1
+[1m[92m  Downloaded[0m utf8parse v0.2.2
+[1m[92m  Downloaded[0m strsim v0.11.1
+[1m[92m  Downloaded[0m clap_lex v1.0.0
+[1m[92m  Downloaded[0m is_terminal_polyfill v1.70.2
+[1m[92m  Downloaded[0m cfg-if v1.0.4
+[1m[92m  Downloaded[0m itoa v1.0.17
+[1m[92m  Downloaded[0m colorchoice v1.0.4
+[1m[92m  Downloaded[0m heck v0.5.0
+[1m[92m  Downloaded[0m rustc-hash v2.1.1
+[1m[92m  Downloaded[0m byteorder v1.5.0
+[1m[92m  Downloaded[0m quote v1.0.44
+[1m[92m  Downloaded[0m simd-adler32 v0.3.10
+[1m[92m  Downloaded[0m either v1.15.0
+[1m[92m  Downloaded[0m ppv-lite86 v0.2.21
+[1m[92m  Downloaded[0m crossbeam-deque v0.8.6
+[1m[92m  Downloaded[0m zmij v1.0.21
+[1m[92m  Downloaded[0m rand_core v0.6.4
+[1m[92m  Downloaded[0m memmap2 v0.9.10
+[1m[92m  Downloaded[0m crossbeam-utils v0.8.21
+[1m[92m  Downloaded[0m getrandom v0.2.17
+[1m[92m  Downloaded[0m crossbeam-epoch v0.9.18
+[1m[92m  Downloaded[0m clap_derive v4.5.55
+[1m[92m  Downloaded[0m serde_derive v1.0.228
+[1m[92m  Downloaded[0m serde_core v1.0.228
+[1m[92m  Downloaded[0m unicode-ident v1.0.24
+[1m[92m  Downloaded[0m rayon-core v1.13.0
+[1m[92m  Downloaded[0m clap v4.5.60
+[1m[92m  Downloaded[0m crc32fast v1.5.2
+[1m[92m  Downloaded[0m flate2 v1.1.10
+[1m[92m  Downloaded[0m serde v1.0.228
+[1m[92m  Downloaded[0m memchr v2.8.0
+[1m[92m  Downloaded[0m miniz_oxide v0.9.1
+[1m[92m  Downloaded[0m rand v0.8.5
+[1m[92m  Downloaded[0m serde_json v1.0.149
+[1m[92m  Downloaded[0m clap_builder v4.5.60
+[1m[92m  Downloaded[0m rayon v1.11.0
+[1m[92m  Downloaded[0m zlib-rs v0.6.8
+[1m[92m  Downloaded[0m syn v2.0.117
+[1m[92m  Downloaded[0m zerocopy v0.8.39
+[1m[92m  Downloaded[0m libc v0.2.182
+[1m[92m   Compiling[0m proc-macro2 v1.0.106
+[1m[92m   Compiling[0m quote v1.0.44
+[1m[92m   Compiling[0m unicode-ident v1.0.24
+[1m[92m   Compiling[0m libc v0.2.182
+[1m[92m   Compiling[0m cfg-if v1.0.4
+[1m[92m   Compiling[0m serde_core v1.0.228
+[1m[92m   Compiling[0m crossbeam-utils v0.8.21
+[1m[92m   Compiling[0m zerocopy v0.8.39
+[1m[92m   Compiling[0m syn v2.0.117
+[1m[92m   Compiling[0m serde v1.0.228
+[1m[92m   Compiling[0m utf8parse v0.2.2
+[1m[92m   Compiling[0m anstyle-parse v0.2.7
+[1m[92m   Compiling[0m getrandom v0.2.17
+[1m[92m   Compiling[0m crossbeam-epoch v0.9.18
+[1m[92m   Compiling[0m colorchoice v1.0.4
+[1m[92m   Compiling[0m anstyle-query v1.1.5
+[1m[92m   Compiling[0m anstyle v1.0.13
+[1m[92m   Compiling[0m crc32fast v1.5.2
+[1m[92m   Compiling[0m rayon-core v1.13.0
+[1m[92m   Compiling[0m is_terminal_polyfill v1.70.2
+[1m[92m   Compiling[0m zmij v1.0.21
+[1m[92m   Compiling[0m anstream v0.6.21
+[1m[92m   Compiling[0m crossbeam-deque v0.8.6
+[1m[92m   Compiling[0m rand_core v0.6.4
+[1m[92m   Compiling[0m clap_lex v1.0.0
+[1m[92m   Compiling[0m heck v0.5.0
+[1m[92m   Compiling[0m simd-adler32 v0.3.10
+[1m[92m   Compiling[0m strsim v0.11.1
+[1m[92m   Compiling[0m adler2 v2.0.1
+[1m[92m   Compiling[0m serde_json v1.0.149
+[1m[92m   Compiling[0m miniz_oxide v0.9.1
+[1m[92m   Compiling[0m clap_builder v4.5.60
+[1m[92m   Compiling[0m serde_derive v1.0.228
+[1m[92m   Compiling[0m clap_derive v4.5.55
+[1m[92m   Compiling[0m ppv-lite86 v0.2.21
+[1m[92m   Compiling[0m either v1.15.0
+[1m[92m   Compiling[0m memchr v2.8.0
+[1m[92m   Compiling[0m itoa v1.0.17
+[1m[92m   Compiling[0m rayon v1.11.0
+[1m[92m   Compiling[0m rand_chacha v0.3.1
+[1m[92m   Compiling[0m rand v0.8.5
+[1m[92m   Compiling[0m flate2 v1.1.10
+[1m[92m   Compiling[0m clap v4.5.60
+[1m[92m   Compiling[0m memmap2 v0.9.10
+[1m[92m   Compiling[0m rustc-hash v2.1.1
+[1m[92m   Compiling[0m byteorder v1.5.0
+[1m[92m   Compiling[0m dcfr-solver v0.1.0 (/home/runner/work/poker/poker/solver)
+[1m[33mwarning[0m[1m: unused variable: `n`[0m
+    [1m[94m--> [0msrc/cfr.rs:2252:17
+     [1m[94m|[0m
+[1m[94m2252[0m [1m[94m|[0m             let n = cfr_node.n_actions;
+     [1m[94m|[0m                 [1m[33m^[0m [1m[33mhelp: if this is intentional, prefix it with an underscore: `_n`[0m
+     [1m[94m|[0m
+     [1m[94m= [0m[1mnote[0m: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+[1m[33mwarning[0m[1m: method `sample_board` is never used[0m
+   [1m[94m--> [0msrc/preflop.rs:815:8
+    [1m[94m|[0m
+[1m[94m635[0m [1m[94m|[0m impl PreflopTrainer {
+    [1m[94m|[0m [1m[94m-------------------[0m [1m[94mmethod in this implementation[0m
+[1m[94m...[0m
+[1m[94m815[0m [1m[94m|[0m     fn sample_board(&mut self, dead: Hand) -> Hand {
+    [1m[94m|[0m        [1m[33m^^^^^^^^^^^^[0m
+    [1m[94m|[0m
+    [1m[94m= [0m[1mnote[0m: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+[1m[33mwarning[0m: `dcfr-solver` (lib) generated 2 warnings (run `cargo fix --lib -p dcfr-solver` to apply 1 suggestion)
+[1m[33mwarning[0m[1m: variable does not need to be mutable[0m
+   [1m[94m--> [0msrc/main.rs:898:17
+    [1m[94m|[0m
+[1m[94m898[0m [1m[94m|[0m             let mut config2 = SubgameConfig {
+    [1m[94m|[0m                 [1m[94m----[0m[1m[33m^^^^^^^[0m
+    [1m[94m|[0m                 [1m[94m|[0m
+    [1m[94m|[0m                 [1m[94mhelp: remove this `mut`[0m
+    [1m[94m|[0m
+    [1m[94m= [0m[1mnote[0m: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
+
+[1m[33mwarning[0m: `dcfr-solver` (bin "dcfr-solver") generated 1 warning (run `cargo fix --bin "dcfr-solver" -p dcfr-solver` to apply 1 suggestion)
+[1m[92m    Finished[0m `release` profile [optimized + debuginfo] target(s) in 54.15s
+[1m[92m     Running[0m `solver/target/release/dcfr-solver preflop --iterations 80000000 --seed 42 --open-size 5 --sb-open-size 6 --bet3-size 14 --bet4-size 28 --oop-pot-tax 0 --output experiment/final.bin --chart-output experiment/final-chart.json`
+  iteration 100000/20000000 (1827636 preflop, 194353575 postflop info sets)
+  iteration 200000/20000000 (1828254 preflop, 194652165 postflop info sets)
+  iteration 300000/20000000 (1828886 preflop, 194948367 postflop info sets)
+  iteration 400000/20000000 (1829487 preflop, 195243569 postflop info sets)
+  iteration 500000/20000000 (1830137 preflop, 195537362 postflop info sets)
+  iteration 600000/20000000 (1830770 preflop, 195829555 postflop info sets)
+  iteration 700000/20000000 (1831387 preflop, 196125574 postflop info sets)
+  iteration 800000/20000000 (1831995 preflop, 196424260 postflop info sets)
+  iteration 900000/20000000 (1832617 preflop, 196718350 postflop info sets)
+  iteration 1000000/20000000 (1833304 preflop, 197013444 postflop info sets)
+  iteration 1100000/20000000 (1833895 preflop, 197309373 postflop info sets)
+  iteration 1200000/20000000 (1834493 preflop, 197604251 postflop info sets)
+  iteration 1300000/20000000 (1835148 preflop, 197897966 postflop info sets)
+  iteration 1400000/20000000 (1835795 preflop, 198192977 postflop info sets)
+  iteration 1500000/20000000 (1836400 preflop, 198488676 postflop info sets)
+  iteration 1600000/20000000 (1837069 preflop, 198782542 postflop info sets)
+  iteration 1700000/20000000 (1837701 preflop, 199077265 postflop info sets)
+  iteration 1800000/20000000 (1838313 preflop, 199369843 postflop info sets)
+  iteration 1900000/20000000 (1838934 preflop, 199665039 postflop info sets)
+  iteration 2000000/20000000 (1839568 preflop, 199959967 postflop info sets)
+  iteration 2100000/20000000 (1840208 preflop, 200253751 postflop info sets)
+  iteration 2200000/20000000 (1840821 preflop, 200549301 postflop info sets)
+  iteration 2300000/20000000 (1841448 preflop, 200842837 postflop info sets)
+  iteration 2400000/20000000 (1842050 preflop, 201139187 postflop info sets)
+  iteration 2500000/20000000 (1842667 preflop, 201435417 postflop info sets)
+  iteration 2600000/20000000 (1843281 preflop, 201730262 postflop info sets)
+  iteration 2700000/20000000 (1843902 preflop, 202028497 postflop info sets)
+  iteration 2800000/20000000 (1844511 preflop, 202321652 postflop info sets)
+  iteration 2900000/20000000 (1845165 preflop, 202614131 postflop info sets)
+  iteration 3000000/20000000 (1845801 preflop, 202906933 postflop info sets)
+  iteration 3100000/20000000 (1846453 preflop, 203201558 postflop info sets)
+  iteration 3200000/20000000 (1847075 preflop, 203497822 postflop info sets)
+  iteration 3300000/20000000 (1847695 preflop, 203790354 postflop info sets)
+  iteration 3400000/20000000 (1848375 preflop, 204083095 postflop info sets)
+  iteration 3500000/20000000 (1849024 preflop, 204377403 postflop info sets)
+  iteration 3600000/20000000 (1849647 preflop, 204674613 postflop info sets)
+  iteration 3700000/20000000 (1850289 preflop, 204968241 postflop info sets)
+  iteration 3800000/20000000 (1850966 preflop, 205260098 postflop info sets)
+  iteration 3900000/20000000 (1851548 preflop, 205552379 postflop info sets)
+  iteration 4000000/20000000 (1852245 preflop, 205844944 postflop info sets)
+  iteration 4100000/20000000 (1852876 preflop, 206136453 postflop info sets)
+  iteration 4200000/20000000 (1853404 preflop, 206428436 postflop info sets)
+  iteration 4300000/20000000 (1854116 preflop, 206719550 postflop info sets)
+  iteration 4400000/20000000 (1854698 preflop, 207010565 postflop info sets)
+  iteration 4500000/20000000 (1855301 preflop, 207304921 postflop info sets)
+  iteration 4600000/20000000 (1855925 preflop, 207598524 postflop info sets)
+  iteration 4700000/20000000 (1856544 preflop, 207887622 postflop info sets)
+  iteration 4800000/20000000 (1857164 preflop, 208179220 postflop info sets)
+  iteration 4900000/20000000 (1857780 preflop, 208469288 postflop info sets)
+  iteration 5000000/20000000 (1858391 preflop, 208759683 postflop info sets)
+  iteration 5100000/20000000 (1858951 preflop, 209050981 postflop info sets)
+  iteration 5200000/20000000 (1859514 preflop, 209340199 postflop info sets)
+  iteration 5300000/20000000 (1860096 preflop, 209629806 postflop info sets)
+  iteration 5400000/20000000 (1860666 preflop, 209920777 postflop info sets)
+  iteration 5500000/20000000 (1861245 preflop, 210211335 postflop info sets)
+  iteration 5600000/20000000 (1861831 preflop, 210502216 postflop info sets)
+  iteration 5700000/20000000 (1862444 preflop, 210793328 postflop info sets)
+  iteration 5800000/20000000 (1863029 preflop, 211080188 postflop info sets)
+  iteration 5900000/20000000 (1863623 preflop, 211372935 postflop info sets)
+  iteration 6000000/20000000 (1864221 preflop, 211664295 postflop info sets)
+  iteration 6100000/20000000 (1864781 preflop, 211952459 postflop info sets)
+  iteration 6200000/20000000 (1865438 preflop, 212242239 postflop info sets)
+  iteration 6300000/20000000 (1866054 preflop, 212532927 postflop info sets)
+  iteration 6400000/20000000 (1866613 preflop, 212822784 postflop info sets)
+  iteration 6500000/20000000 (1867192 preflop, 213113481 postflop info sets)
+  iteration 6600000/20000000 (1867767 preflop, 213403350 postflop info sets)
+  iteration 6700000/20000000 (1868414 preflop, 213692969 postflop info sets)
+  iteration 6800000/20000000 (1868959 preflop, 213983332 postflop info sets)
+  iteration 6900000/20000000 (1869579 preflop, 214275049 postflop info sets)
+  iteration 7000000/20000000 (1870210 preflop, 214565135 postflop info sets)
+  iteration 7100000/20000000 (1870798 preflop, 214855084 postflop info sets)
+  iteration 7200000/20000000 (1871404 preflop, 215142733 postflop info sets)
+  iteration 7300000/20000000 (1871998 preflop, 215432535 postflop info sets)
+  iteration 7400000/20000000 (1872617 preflop, 215717604 postflop info sets)
+  iteration 7500000/20000000 (1873153 preflop, 216002995 postflop info sets)
+  iteration 7600000/20000000 (1873695 preflop, 216290100 postflop info sets)
+  iteration 7700000/20000000 (1874324 preflop, 216575226 postflop info sets)
+  iteration 7800000/20000000 (1874875 preflop, 216860294 postflop info sets)
+  iteration 7900000/20000000 (1875467 preflop, 217146853 postflop info sets)
+  iteration 8000000/20000000 (1876074 preflop, 217436496 postflop info sets)
+  iteration 8100000/20000000 (1876670 preflop, 217722473 postflop info sets)
+  iteration 8200000/20000000 (1877214 preflop, 218011825 postflop info sets)
+  iteration 8300000/20000000 (1877853 preflop, 218300110 postflop info sets)
+  iteration 8400000/20000000 (1878353 preflop, 218586190 postflop info sets)
+  iteration 8500000/20000000 (1878966 preflop, 218873947 postflop info sets)
+  iteration 8600000/20000000 (1879569 preflop, 219160778 postflop info sets)
+  iteration 8700000/20000000 (1880166 preflop, 219447841 postflop info sets)
+  iteration 8800000/20000000 (1880743 preflop, 219732717 postflop info sets)
+  iteration 8900000/20000000 (1881277 preflop, 220018357 postflop info sets)
+  iteration 9000000/20000000 (1881869 preflop, 220306447 postflop info sets)
+  iteration 9100000/20000000 (1882462 preflop, 220592841 postflop info sets)
+  iteration 9200000/20000000 (1883066 preflop, 220878582 postflop info sets)
+  iteration 9300000/20000000 (1883644 preflop, 221165826 postflop info sets)
+  iteration 9400000/20000000 (1884206 preflop, 221451487 postflop info sets)
+  iteration 9500000/20000000 (1884785 preflop, 221736781 postflop info sets)
+  iteration 9600000/20000000 (1885409 preflop, 222023357 postflop info sets)
+  iteration 9700000/20000000 (1885966 preflop, 222308470 postflop info sets)
+  iteration 9800000/20000000 (1886533 preflop, 222594050 postflop info sets)
+  iteration 9900000/20000000 (1887103 preflop, 222879608 postflop info sets)
+  iteration 10000000/20000000 (1887662 preflop, 223163927 postflop info sets)
+  iteration 10100000/20000000 (1888250 preflop, 223449822 postflop info sets)
+  iteration 10200000/20000000 (1888868 preflop, 223735581 postflop info sets)
+  iteration 10300000/20000000 (1889408 preflop, 224018567 postflop info sets)
+  iteration 10400000/20000000 (1889952 preflop, 224303870 postflop info sets)
+  iteration 10500000/20000000 (1890556 preflop, 224589935 postflop info sets)
+  iteration 10600000/20000000 (1891107 preflop, 224872479 postflop info sets)
+  iteration 10700000/20000000 (1891721 preflop, 225158109 postflop info sets)
+  iteration 10800000/20000000 (1892265 preflop, 225439466 postflop info sets)
+  iteration 10900000/20000000 (1892840 preflop, 225723906 postflop info sets)
+  iteration 11000000/20000000 (1893386 preflop, 226011392 postflop info sets)
+  iteration 11100000/20000000 (1893957 preflop, 226298539 postflop info sets)
+  iteration 11200000/20000000 (1894555 preflop, 226585100 postflop info sets)
+  iteration 11300000/20000000 (1895193 preflop, 226869333 postflop info sets)
+  iteration 11400000/20000000 (1895758 preflop, 227151588 postflop info sets)
+  iteration 11500000/20000000 (1896365 preflop, 227436625 postflop info sets)
+  iteration 11600000/20000000 (1896935 preflop, 227720225 postflop info sets)
+  iteration 11700000/20000000 (1897470 preflop, 228003139 postflop info sets)
+  iteration 11800000/20000000 (1897984 preflop, 228287930 postflop info sets)
+  iteration 11900000/20000000 (1898599 preflop, 228571493 postflop info sets)
+  iteration 12000000/20000000 (1899127 preflop, 228856006 postflop info sets)
+  iteration 12100000/20000000 (1899631 preflop, 229140582 postflop info sets)
+  iteration 12200000/20000000 (1900171 preflop, 229424093 postflop info sets)
+  iteration 12300000/20000000 (1900678 preflop, 229707216 postflop info sets)
+  iteration 12400000/20000000 (1901187 preflop, 229988138 postflop info sets)
+  iteration 12500000/20000000 (1901743 preflop, 230271401 postflop info sets)
+  iteration 12600000/20000000 (1902281 preflop, 230553877 postflop info sets)
+  iteration 12700000/20000000 (1902851 preflop, 230836660 postflop info sets)
+  iteration 12800000/20000000 (1903369 preflop, 231119844 postflop info sets)
+  iteration 12900000/20000000 (1903883 preflop, 231400401 postflop info sets)
+  iteration 13000000/20000000 (1904427 preflop, 231681794 postflop info sets)
+  iteration 13100000/20000000 (1904976 preflop, 231962301 postflop info sets)
+  iteration 13200000/20000000 (1905539 preflop, 232245194 postflop info sets)
+  iteration 13300000/20000000 (1906052 preflop, 232527115 postflop info sets)
+  iteration 13400000/20000000 (1906574 preflop, 232808681 postflop info sets)
+  iteration 13500000/20000000 (1907116 preflop, 233091784 postflop info sets)
+  iteration 13600000/20000000 (1907654 preflop, 233373197 postflop info sets)
+  iteration 13700000/20000000 (1908198 preflop, 233656217 postflop info sets)
+  iteration 13800000/20000000 (1908731 preflop, 233937446 postflop info sets)
+  iteration 13900000/20000000 (1909264 preflop, 234218695 postflop info sets)
+  iteration 14000000/20000000 (1909825 preflop, 234498829 postflop info sets)
+  iteration 14100000/20000000 (1910361 preflop, 234779198 postflop info sets)
+  iteration 14200000/20000000 (1910909 preflop, 235060560 postflop info sets)
+  iteration 14300000/20000000 (1911486 preflop, 235342433 postflop info sets)
+  iteration 14400000/20000000 (1912007 preflop, 235622290 postflop info sets)
+  iteration 14500000/20000000 (1912516 preflop, 235901650 postflop info sets)
+  iteration 14600000/20000000 (1913037 preflop, 236183335 postflop info sets)
+  iteration 14700000/20000000 (1913569 preflop, 236464309 postflop info sets)
+  iteration 14800000/20000000 (1914132 preflop, 236744005 postflop info sets)
+  iteration 14900000/20000000 (1914661 preflop, 237021925 postflop info sets)
+  iteration 15000000/20000000 (1915189 preflop, 237303095 postflop info sets)
+  iteration 15100000/20000000 (1915742 preflop, 237578966 postflop info sets)
+  iteration 15200000/20000000 (1916255 preflop, 237856532 postflop info sets)
+  iteration 15300000/20000000 (1916821 preflop, 238134100 postflop info sets)
+  iteration 15400000/20000000 (1917401 preflop, 238413491 postflop info sets)
+  iteration 15500000/20000000 (1917943 preflop, 238688859 postflop info sets)
+  iteration 15600000/20000000 (1918427 preflop, 238969716 postflop info sets)
+  iteration 15700000/20000000 (1918947 preflop, 239247265 postflop info sets)
+  iteration 15800000/20000000 (1919473 preflop, 239526648 postflop info sets)
+  iteration 15900000/20000000 (1920003 preflop, 239803112 postflop info sets)
+  iteration 16000000/20000000 (1920503 preflop, 240080916 postflop info sets)
+  iteration 16100000/20000000 (1921103 preflop, 240359864 postflop info sets)
+  iteration 16200000/20000000 (1921634 preflop, 240638628 postflop info sets)
+  iteration 16300000/20000000 (1922241 preflop, 240918442 postflop info sets)
+  iteration 16400000/20000000 (1922763 preflop, 241195443 postflop info sets)
+  iteration 16500000/20000000 (1923340 preflop, 241472290 postflop info sets)
+  iteration 16600000/20000000 (1923917 preflop, 241749204 postflop info sets)
+  iteration 16700000/20000000 (1924421 preflop, 242026727 postflop info sets)
+  iteration 16800000/20000000 (1924938 preflop, 242303823 postflop info sets)
+  iteration 16900000/20000000 (1925445 preflop, 242583619 postflop info sets)
+  iteration 17000000/20000000 (1925965 preflop, 242859728 postflop info sets)
+  iteration 17100000/20000000 (1926519 preflop, 243136692 postflop info sets)
+  iteration 17200000/20000000 (1927040 preflop, 243412994 postflop info sets)
+  iteration 17300000/20000000 (1927606 preflop, 243689477 postflop info sets)
+  iteration 17400000/20000000 (1928124 preflop, 243964637 postflop info sets)
+  iteration 17500000/20000000 (1928705 preflop, 244242519 postflop info sets)
+  iteration 17600000/20000000 (1929238 preflop, 244520040 postflop info sets)
+  iteration 17700000/20000000 (1929825 preflop, 244795015 postflop info sets)
+  iteration 17800000/20000000 (1930299 preflop, 245069699 postflop info sets)
+  iteration 17900000/20000000 (1930802 preflop, 245346768 postflop info sets)
+  iteration 18000000/20000000 (1931363 preflop, 245622246 postflop info sets)
+  iteration 18100000/20000000 (1931849 preflop, 245898297 postflop info sets)
+  iteration 18200000/20000000 (1932336 preflop, 246172068 postflop info sets)
+  iteration 18300000/20000000 (1932861 preflop, 246447465 postflop info sets)
+  iteration 18400000/20000000 (1933401 preflop, 246723260 postflop info sets)
+  iteration 18500000/20000000 (1933939 preflop, 246998843 postflop info sets)
+  iteration 18600000/20000000 (1934413 preflop, 247272203 postflop info sets)
+  iteration 18700000/20000000 (1934933 preflop, 247547718 postflop info sets)
+  iteration 18800000/20000000 (1935495 preflop, 247825580 postflop info sets)
+  iteration 18900000/20000000 (1935929 preflop, 248101370 postflop info sets)
+  iteration 19000000/20000000 (1936477 preflop, 248377536 postflop info sets)
+  iteration 19100000/20000000 (1936986 preflop, 248653763 postflop info sets)
+  iteration 19200000/20000000 (1937497 preflop, 248928052 postflop info sets)
+  iteration 19300000/20000000 (1938013 preflop, 249203815 postflop info sets)
+  iteration 19400000/20000000 (1938505 preflop, 249476451 postflop info sets)
+  iteration 19500000/20000000 (1939066 preflop, 249748846 postflop info sets)
+  iteration 19600000/20000000 (1939603 preflop, 250025243 postflop info sets)
+  iteration 19700000/20000000 (1940110 preflop, 250301952 postflop info sets)
+  iteration 19800000/20000000 (1940561 preflop, 250577133 postflop info sets)
+  iteration 19900000/20000000 (1941109 preflop, 250850096 postflop info sets)
+	Command being timed: "cargo run --release --manifest-path solver/Cargo.toml -- preflop --iterations 80000000 --seed 42 --open-size 5 --sb-open-size 6 --bet3-size 14 --bet4-size 28 --oop-pot-tax 0 --output experiment/final.bin --chart-output experiment/final-chart.json"
+	User time (seconds): 1561.12
+	System time (seconds): 334.38
+	Percent of CPU this job got: 33%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 1:35:30
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 15578012
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 27314289
+	Minor (reclaiming a frame) page faults: 7131964
+	Voluntary context switches: 27322176
+	Involuntary context switches: 16879
+	Swaps: 0
+	File system inputs: 247706208
+	File system outputs: 14912112
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0

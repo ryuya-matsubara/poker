@@ -1,0 +1,198 @@
+[1m[92m    Updating[0m crates.io index
+[1m[92m     Locking[0m 6 packages to latest compatible versions
+[1m[92m      Adding[0m adler2 v2.0.1
+[1m[92m      Adding[0m crc32fast v1.5.2
+[1m[92m      Adding[0m flate2 v1.1.10
+[1m[92m      Adding[0m miniz_oxide v0.9.1
+[1m[92m      Adding[0m simd-adler32 v0.3.10
+[1m[92m      Adding[0m zlib-rs v0.6.8
+[1m[92m Downloading[0m crates ...
+[1m[92m  Downloaded[0m rustc-hash v2.1.1
+[1m[92m  Downloaded[0m serde_derive v1.0.228
+[1m[92m  Downloaded[0m crossbeam-epoch v0.9.18
+[1m[92m  Downloaded[0m anstream v0.6.21
+[1m[92m  Downloaded[0m anstyle-query v1.1.5
+[1m[92m  Downloaded[0m zmij v1.0.21
+[1m[92m  Downloaded[0m unicode-ident v1.0.24
+[1m[92m  Downloaded[0m is_terminal_polyfill v1.70.2
+[1m[92m  Downloaded[0m anstyle v1.0.13
+[1m[92m  Downloaded[0m either v1.15.0
+[1m[92m  Downloaded[0m colorchoice v1.0.4
+[1m[92m  Downloaded[0m strsim v0.11.1
+[1m[92m  Downloaded[0m crossbeam-deque v0.8.6
+[1m[92m  Downloaded[0m memchr v2.8.0
+[1m[92m  Downloaded[0m proc-macro2 v1.0.106
+[1m[92m  Downloaded[0m rand_core v0.6.4
+[1m[92m  Downloaded[0m clap v4.5.60
+[1m[92m  Downloaded[0m serde v1.0.228
+[1m[92m  Downloaded[0m cfg-if v1.0.4
+[1m[92m  Downloaded[0m heck v0.5.0
+[1m[92m  Downloaded[0m ppv-lite86 v0.2.21
+[1m[92m  Downloaded[0m utf8parse v0.2.2
+[1m[92m  Downloaded[0m memmap2 v0.9.10
+[1m[92m  Downloaded[0m serde_core v1.0.228
+[1m[92m  Downloaded[0m itoa v1.0.17
+[1m[92m  Downloaded[0m rayon-core v1.13.0
+[1m[92m  Downloaded[0m anstyle-parse v0.2.7
+[1m[92m  Downloaded[0m rayon v1.11.0
+[1m[92m  Downloaded[0m rand v0.8.5
+[1m[92m  Downloaded[0m simd-adler32 v0.3.10
+[1m[92m  Downloaded[0m byteorder v1.5.0
+[1m[92m  Downloaded[0m clap_lex v1.0.0
+[1m[92m  Downloaded[0m rand_chacha v0.3.1
+[1m[92m  Downloaded[0m crc32fast v1.5.2
+[1m[92m  Downloaded[0m crossbeam-utils v0.8.21
+[1m[92m  Downloaded[0m quote v1.0.44
+[1m[92m  Downloaded[0m adler2 v2.0.1
+[1m[92m  Downloaded[0m clap_derive v4.5.55
+[1m[92m  Downloaded[0m flate2 v1.1.10
+[1m[92m  Downloaded[0m getrandom v0.2.17
+[1m[92m  Downloaded[0m miniz_oxide v0.9.1
+[1m[92m  Downloaded[0m zlib-rs v0.6.8
+[1m[92m  Downloaded[0m clap_builder v4.5.60
+[1m[92m  Downloaded[0m serde_json v1.0.149
+[1m[92m  Downloaded[0m zerocopy v0.8.39
+[1m[92m  Downloaded[0m syn v2.0.117
+[1m[92m  Downloaded[0m libc v0.2.182
+[1m[92m   Compiling[0m proc-macro2 v1.0.106
+[1m[92m   Compiling[0m quote v1.0.44
+[1m[92m   Compiling[0m unicode-ident v1.0.24
+[1m[92m   Compiling[0m libc v0.2.182
+[1m[92m   Compiling[0m crossbeam-utils v0.8.21
+[1m[92m   Compiling[0m cfg-if v1.0.4
+[1m[92m   Compiling[0m serde_core v1.0.228
+[1m[92m   Compiling[0m zerocopy v0.8.39
+[1m[92m   Compiling[0m syn v2.0.117
+[1m[92m   Compiling[0m utf8parse v0.2.2
+[1m[92m   Compiling[0m serde v1.0.228
+[1m[92m   Compiling[0m anstyle-parse v0.2.7
+[1m[92m   Compiling[0m getrandom v0.2.17
+[1m[92m   Compiling[0m crossbeam-epoch v0.9.18
+[1m[92m   Compiling[0m zmij v1.0.21
+[1m[92m   Compiling[0m anstyle v1.0.13
+[1m[92m   Compiling[0m rayon-core v1.13.0
+[1m[92m   Compiling[0m colorchoice v1.0.4
+[1m[92m   Compiling[0m crc32fast v1.5.2
+[1m[92m   Compiling[0m is_terminal_polyfill v1.70.2
+[1m[92m   Compiling[0m anstyle-query v1.1.5
+[1m[92m   Compiling[0m anstream v0.6.21
+[1m[92m   Compiling[0m crossbeam-deque v0.8.6
+[1m[92m   Compiling[0m rand_core v0.6.4
+[1m[92m   Compiling[0m clap_lex v1.0.0
+[1m[92m   Compiling[0m adler2 v2.0.1
+[1m[92m   Compiling[0m heck v0.5.0
+[1m[92m   Compiling[0m serde_json v1.0.149
+[1m[92m   Compiling[0m simd-adler32 v0.3.10
+[1m[92m   Compiling[0m strsim v0.11.1
+[1m[92m   Compiling[0m clap_builder v4.5.60
+[1m[92m   Compiling[0m miniz_oxide v0.9.1
+[1m[92m   Compiling[0m serde_derive v1.0.228
+[1m[92m   Compiling[0m clap_derive v4.5.55
+[1m[92m   Compiling[0m ppv-lite86 v0.2.21
+[1m[92m   Compiling[0m either v1.15.0
+[1m[92m   Compiling[0m itoa v1.0.17
+[1m[92m   Compiling[0m memchr v2.8.0
+[1m[92m   Compiling[0m rayon v1.11.0
+[1m[92m   Compiling[0m rand_chacha v0.3.1
+[1m[92m   Compiling[0m rand v0.8.5
+[1m[92m   Compiling[0m flate2 v1.1.10
+[1m[92m   Compiling[0m clap v4.5.60
+[1m[92m   Compiling[0m memmap2 v0.9.10
+[1m[92m   Compiling[0m rustc-hash v2.1.1
+[1m[92m   Compiling[0m byteorder v1.5.0
+[1m[92m   Compiling[0m dcfr-solver v0.1.0 (/home/runner/work/poker/poker/solver)
+[1m[33mwarning[0m[1m: unused variable: `n`[0m
+    [1m[94m--> [0msrc/cfr.rs:2252:17
+     [1m[94m|[0m
+[1m[94m2252[0m [1m[94m|[0m             let n = cfr_node.n_actions;
+     [1m[94m|[0m                 [1m[33m^[0m [1m[33mhelp: if this is intentional, prefix it with an underscore: `_n`[0m
+     [1m[94m|[0m
+     [1m[94m= [0m[1mnote[0m: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+[1m[33mwarning[0m[1m: method `sample_board` is never used[0m
+   [1m[94m--> [0msrc/preflop.rs:815:8
+    [1m[94m|[0m
+[1m[94m635[0m [1m[94m|[0m impl PreflopTrainer {
+    [1m[94m|[0m [1m[94m-------------------[0m [1m[94mmethod in this implementation[0m
+[1m[94m...[0m
+[1m[94m815[0m [1m[94m|[0m     fn sample_board(&mut self, dead: Hand) -> Hand {
+    [1m[94m|[0m        [1m[33m^^^^^^^^^^^^[0m
+    [1m[94m|[0m
+    [1m[94m= [0m[1mnote[0m: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+[1m[33mwarning[0m: `dcfr-solver` (lib) generated 2 warnings (run `cargo fix --lib -p dcfr-solver` to apply 1 suggestion)
+[1m[33mwarning[0m[1m: variable does not need to be mutable[0m
+   [1m[94m--> [0msrc/main.rs:898:17
+    [1m[94m|[0m
+[1m[94m898[0m [1m[94m|[0m             let mut config2 = SubgameConfig {
+    [1m[94m|[0m                 [1m[94m----[0m[1m[33m^^^^^^^[0m
+    [1m[94m|[0m                 [1m[94m|[0m
+    [1m[94m|[0m                 [1m[94mhelp: remove this `mut`[0m
+    [1m[94m|[0m
+    [1m[94m= [0m[1mnote[0m: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
+
+[1m[33mwarning[0m: `dcfr-solver` (bin "dcfr-solver") generated 1 warning (run `cargo fix --bin "dcfr-solver" -p dcfr-solver` to apply 1 suggestion)
+[1m[92m    Finished[0m `release` profile [optimized + debuginfo] target(s) in 55.31s
+[1m[92m     Running[0m `solver/target/release/dcfr-solver preflop --iterations 84000000 --seed 101 --open-size 5 --sb-open-size 6 --bet3-size 14 --bet4-size 28 --oop-pot-tax 0 --output experiment/final.bin --chart-output experiment/final-chart.json`
+  iteration 100000/4000000 (1971332 preflop, 252366206 postflop info sets)
+  iteration 200000/4000000 (1971873 preflop, 252643810 postflop info sets)
+  iteration 300000/4000000 (1972372 preflop, 252920902 postflop info sets)
+  iteration 400000/4000000 (1972913 preflop, 253197772 postflop info sets)
+  iteration 500000/4000000 (1973395 preflop, 253478112 postflop info sets)
+  iteration 600000/4000000 (1973928 preflop, 253756301 postflop info sets)
+  iteration 700000/4000000 (1974436 preflop, 254033380 postflop info sets)
+  iteration 800000/4000000 (1974976 preflop, 254308499 postflop info sets)
+  iteration 900000/4000000 (1975489 preflop, 254588287 postflop info sets)
+  iteration 1000000/4000000 (1975956 preflop, 254867612 postflop info sets)
+  iteration 1100000/4000000 (1976486 preflop, 255143544 postflop info sets)
+  iteration 1200000/4000000 (1977038 preflop, 255420517 postflop info sets)
+  iteration 1300000/4000000 (1977556 preflop, 255694966 postflop info sets)
+  iteration 1400000/4000000 (1978077 preflop, 255972336 postflop info sets)
+  iteration 1500000/4000000 (1978602 preflop, 256248747 postflop info sets)
+  iteration 1600000/4000000 (1979072 preflop, 256526514 postflop info sets)
+  iteration 1700000/4000000 (1979577 preflop, 256803105 postflop info sets)
+  iteration 1800000/4000000 (1980089 preflop, 257079926 postflop info sets)
+  iteration 1900000/4000000 (1980571 preflop, 257357670 postflop info sets)
+  iteration 2000000/4000000 (1981093 preflop, 257633467 postflop info sets)
+  iteration 2100000/4000000 (1981654 preflop, 257909757 postflop info sets)
+  iteration 2200000/4000000 (1982136 preflop, 258186742 postflop info sets)
+  iteration 2300000/4000000 (1982648 preflop, 258465233 postflop info sets)
+  iteration 2400000/4000000 (1983166 preflop, 258742186 postflop info sets)
+  iteration 2500000/4000000 (1983654 preflop, 259018643 postflop info sets)
+  iteration 2600000/4000000 (1984156 preflop, 259294610 postflop info sets)
+  iteration 2700000/4000000 (1984665 preflop, 259569299 postflop info sets)
+  iteration 2800000/4000000 (1985125 preflop, 259842566 postflop info sets)
+  iteration 2900000/4000000 (1985636 preflop, 260121225 postflop info sets)
+  iteration 3000000/4000000 (1986092 preflop, 260394815 postflop info sets)
+  iteration 3100000/4000000 (1986606 preflop, 260668267 postflop info sets)
+  iteration 3200000/4000000 (1987089 preflop, 260944168 postflop info sets)
+  iteration 3300000/4000000 (1987563 preflop, 261218994 postflop info sets)
+  iteration 3400000/4000000 (1988046 preflop, 261493195 postflop info sets)
+  iteration 3500000/4000000 (1988533 preflop, 261767190 postflop info sets)
+  iteration 3600000/4000000 (1989010 preflop, 262041455 postflop info sets)
+  iteration 3700000/4000000 (1989514 preflop, 262315025 postflop info sets)
+  iteration 3800000/4000000 (1990039 preflop, 262589214 postflop info sets)
+  iteration 3900000/4000000 (1990536 preflop, 262864965 postflop info sets)
+	Command being timed: "cargo run --release --manifest-path solver/Cargo.toml -- preflop --iterations 84000000 --seed 101 --open-size 5 --sb-open-size 6 --bet3-size 14 --bet4-size 28 --oop-pot-tax 0 --output experiment/final.bin --chart-output experiment/final-chart.json"
+	User time (seconds): 1683.20
+	System time (seconds): 1949.23
+	Percent of CPU this job got: 20%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 4:54:28
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 15587404
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 117669027
+	Minor (reclaiming a frame) page faults: 6954342
+	Voluntary context switches: 117683401
+	Involuntary context switches: 18377
+	Swaps: 0
+	File system inputs: 980550144
+	File system outputs: 15578320
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0

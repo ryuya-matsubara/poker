@@ -1,0 +1,527 @@
+[
+  {
+    "actions": [
+      {
+        "action": "fold",
+        "ci95_bb": [
+          0.0,
+          0.0
+        ],
+        "estimated_regret_bb": -1.5807888550054747,
+        "jam_difference_se_bb": 0.0953823282301489,
+        "jam_minus_action_bb": 1.58595,
+        "mean_bb": 0.0,
+        "probability": 2.4978611179449217e-08,
+        "regret_se_bb": 0.10055210028458003,
+        "samples": 10000,
+        "se_bb": 0.0,
+        "stored_cumulative_regret_half_bb": -297951.3125,
+        "current_regret_matching_probability": 0.0
+      },
+      {
+        "action": "raise 4",
+        "ci95_bb": [
+          1.4851526683575769,
+          1.905347331642423
+        ],
+        "estimated_regret_bb": 0.11446114499452524,
+        "jam_difference_se_bb": 0.08920652235886756,
+        "jam_minus_action_bb": -0.1093,
+        "mean_bb": 1.69525,
+        "probability": 0.26448407769203186,
+        "regret_se_bb": 0.06397102589102735,
+        "samples": 10000,
+        "se_bb": 0.10719251614409343,
+        "stored_cumulative_regret_half_bb": 655.2230224609375,
+        "current_regret_matching_probability": 0.3190917763817297
+      },
+      {
+        "action": "raise 5",
+        "ci95_bb": [
+          1.3283775584487858,
+          1.7508724415512142
+        ],
+        "estimated_regret_bb": -0.04116385500547476,
+        "jam_difference_se_bb": 0.08528169980288636,
+        "jam_minus_action_bb": 0.046325,
+        "mean_bb": 1.539625,
+        "probability": 0.7354398965835571,
+        "regret_se_bb": 0.02300742204613269,
+        "samples": 10000,
+        "se_bb": 0.10777930691388483,
+        "stored_cumulative_regret_half_bb": 1398.1768798828125,
+        "current_regret_matching_probability": 0.6809082236182703
+      },
+      {
+        "action": "allin",
+        "ci95_bb": [
+          1.399000636668908,
+          1.7728993633310919
+        ],
+        "estimated_regret_bb": 0.0051611449945252385,
+        "jam_difference_se_bb": 0.0,
+        "jam_minus_action_bb": 0.0,
+        "mean_bb": 1.58595,
+        "probability": 7.602479308843613e-05,
+        "regret_se_bb": 0.07733979398556273,
+        "samples": 10000,
+        "se_bb": 0.0953823282301489,
+        "stored_cumulative_regret_half_bb": -14962.845703125,
+        "current_regret_matching_probability": 0.0
+      }
+    ],
+    "attempts": 1913360,
+    "hand": "AQo",
+    "spot": "BTN RFI"
+  },
+  {
+    "actions": [
+      {
+        "action": "fold",
+        "ci95_bb": [
+          0.0,
+          0.0
+        ],
+        "estimated_regret_bb": -5.059150023723786,
+        "jam_difference_se_bb": 0.08891482042644323,
+        "jam_minus_action_bb": 4.259175,
+        "mean_bb": 0.0,
+        "probability": 1.4405344472834258e-08,
+        "regret_se_bb": 0.09452807000081404,
+        "samples": 10000,
+        "se_bb": 0.0,
+        "stored_cumulative_regret_half_bb": -452228.375,
+        "current_regret_matching_probability": 0.0
+      },
+      {
+        "action": "raise 4",
+        "ci95_bb": [
+          4.746906146454405,
+          5.143643853545594
+        ],
+        "estimated_regret_bb": -0.11387502372378658,
+        "jam_difference_se_bb": 0.08632095232144377,
+        "jam_minus_action_bb": -0.6861,
+        "mean_bb": 4.945275,
+        "probability": 0.2212858647108078,
+        "regret_se_bb": 0.06419527226051988,
+        "samples": 10000,
+        "se_bb": 0.1012085987477524,
+        "stored_cumulative_regret_half_bb": 1428.989990234375,
+        "current_regret_matching_probability": 0.5937490394799482
+      },
+      {
+        "action": "raise 5",
+        "ci95_bb": [
+          4.895309266970468,
+          5.288740733029531
+        ],
+        "estimated_regret_bb": 0.03287497627621342,
+        "jam_difference_se_bb": 0.08054305405251039,
+        "jam_minus_action_bb": -0.83285,
+        "mean_bb": 5.092025,
+        "probability": 0.7782326340675354,
+        "regret_se_bb": 0.018264170419644454,
+        "samples": 10000,
+        "se_bb": 0.10036516991302644,
+        "stored_cumulative_regret_half_bb": 977.73388671875,
+        "current_regret_matching_probability": 0.40625096052005183
+      },
+      {
+        "action": "allin",
+        "ci95_bb": [
+          4.084901951964171,
+          4.433448048035829
+        ],
+        "estimated_regret_bb": -0.7999750237237866,
+        "jam_difference_se_bb": 0.0,
+        "jam_minus_action_bb": 0.0,
+        "mean_bb": 4.259175,
+        "probability": 0.00048144080210477114,
+        "regret_se_bb": 0.0743183592720134,
+        "samples": 10000,
+        "se_bb": 0.08891482042644323,
+        "stored_cumulative_regret_half_bb": -65344.90234375,
+        "current_regret_matching_probability": 0.0
+      }
+    ],
+    "attempts": 3697585,
+    "hand": "AA",
+    "spot": "BTN RFI"
+  },
+  {
+    "actions": [
+      {
+        "action": "fold",
+        "ci95_bb": [
+          0.0,
+          0.0
+        ],
+        "estimated_regret_bb": -0.3491691454857588,
+        "jam_difference_se_bb": 0.09954494562442605,
+        "jam_minus_action_bb": 0.23205,
+        "mean_bb": 0.0,
+        "probability": 0.00012453911767806858,
+        "regret_se_bb": 0.0789511977675961,
+        "samples": 10000,
+        "se_bb": 0.0,
+        "stored_cumulative_regret_half_bb": -6748.97021484375,
+        "current_regret_matching_probability": 0.0
+      },
+      {
+        "action": "raise 4",
+        "ci95_bb": [
+          0.20641862651268772,
+          0.5461313734873123
+        ],
+        "estimated_regret_bb": 0.027105854514241218,
+        "jam_difference_se_bb": 0.09355242244598506,
+        "jam_minus_action_bb": -0.144225,
+        "mean_bb": 0.376275,
+        "probability": 0.7872081995010376,
+        "regret_se_bb": 0.015990524179460536,
+        "samples": 10000,
+        "se_bb": 0.0866614150445471,
+        "stored_cumulative_regret_half_bb": 1321.7359619140625,
+        "current_regret_matching_probability": 0.7092148880315192
+      },
+      {
+        "action": "raise 5",
+        "ci95_bb": [
+          0.10341473174775304,
+          0.42278526825224694
+        ],
+        "estimated_regret_bb": -0.08606914548575878,
+        "jam_difference_se_bb": 0.09331245528428195,
+        "jam_minus_action_bb": -0.03105,
+        "mean_bb": 0.2631,
+        "probability": 0.11635877192020416,
+        "regret_se_bb": 0.07045304171669885,
+        "samples": 10000,
+        "se_bb": 0.08147207563890152,
+        "stored_cumulative_regret_half_bb": 541.9248046875,
+        "current_regret_matching_probability": 0.2907851119684807
+      },
+      {
+        "action": "allin",
+        "ci95_bb": [
+          0.03694190657612495,
+          0.42715809342387506
+        ],
+        "estimated_regret_bb": -0.11711914548575879,
+        "jam_difference_se_bb": 0.0,
+        "jam_minus_action_bb": 0.0,
+        "mean_bb": 0.23205,
+        "probability": 0.09630849957466125,
+        "regret_se_bb": 0.08061383498594765,
+        "samples": 10000,
+        "se_bb": 0.09954494562442605,
+        "stored_cumulative_regret_half_bb": -8260.91015625,
+        "current_regret_matching_probability": 0.0
+      }
+    ],
+    "attempts": 6024472,
+    "hand": "A5s",
+    "spot": "BTN RFI"
+  },
+  {
+    "actions": [
+      {
+        "action": "fold",
+        "ci95_bb": [
+          0.0,
+          0.0
+        ],
+        "estimated_regret_bb": 0.06789442846477031,
+        "jam_difference_se_bb": 0.11116512282390212,
+        "jam_minus_action_bb": -0.1144,
+        "mean_bb": 0.0,
+        "probability": 0.024945886805653572,
+        "regret_se_bb": 0.07017175212831266,
+        "samples": 10000,
+        "se_bb": 0.0,
+        "stored_cumulative_regret_half_bb": -1034.9180908203125,
+        "current_regret_matching_probability": 0.0
+      },
+      {
+        "action": "raise 4",
+        "ci95_bb": [
+          -0.2894177752930903,
+          0.06381777529309034
+        ],
+        "estimated_regret_bb": -0.044905571535229685,
+        "jam_difference_se_bb": 0.10830834023128766,
+        "jam_minus_action_bb": -0.0016,
+        "mean_bb": -0.1128,
+        "probability": 0.46009695529937744,
+        "regret_se_bb": 0.04607630385751995,
+        "samples": 10000,
+        "se_bb": 0.09011110984341343,
+        "stored_cumulative_regret_half_bb": 886.6991577148438,
+        "current_regret_matching_probability": 0.22369567243553412
+      },
+      {
+        "action": "raise 5",
+        "ci95_bb": [
+          -0.172556494597186,
+          0.150356494597186
+        ],
+        "estimated_regret_bb": 0.05679442846477032,
+        "jam_difference_se_bb": 0.10625327353457718,
+        "jam_minus_action_bb": -0.1033,
+        "mean_bb": -0.0111,
+        "probability": 0.4154462516307831,
+        "regret_se_bb": 0.04933834586208757,
+        "samples": 10000,
+        "se_bb": 0.0823757625495847,
+        "stored_cumulative_regret_half_bb": 3077.16455078125,
+        "current_regret_matching_probability": 0.7763043275644659
+      },
+      {
+        "action": "allin",
+        "ci95_bb": [
+          -0.3322836407348482,
+          0.10348364073484814
+        ],
+        "estimated_regret_bb": -0.04650557153522968,
+        "jam_difference_se_bb": 0.0,
+        "jam_minus_action_bb": 0.0,
+        "mean_bb": -0.1144,
+        "probability": 0.09951082617044449,
+        "regret_se_bb": 0.0868047075535079,
+        "samples": 10000,
+        "se_bb": 0.11116512282390212,
+        "stored_cumulative_regret_half_bb": -2516.682373046875,
+        "current_regret_matching_probability": 0.0
+      }
+    ],
+    "attempts": 4494379,
+    "hand": "22",
+    "spot": "BTN RFI"
+  },
+  {
+    "actions": [
+      {
+        "action": "fold",
+        "ci95_bb": [
+          0.0,
+          0.0
+        ],
+        "estimated_regret_bb": 9.354819463555941e-05,
+        "jam_difference_se_bb": 0.10624418333442655,
+        "jam_minus_action_bb": -1.19345,
+        "mean_bb": 0.0,
+        "probability": 0.9999240636825562,
+        "regret_se_bb": 6.740125456187772e-06,
+        "samples": 10000,
+        "se_bb": 0.0,
+        "stored_cumulative_regret_half_bb": 645.4161987304688,
+        "current_regret_matching_probability": 1.0
+      },
+      {
+        "action": "raise 4",
+        "ci95_bb": [
+          -1.2817712992102535,
+          -0.8924287007897466
+        ],
+        "estimated_regret_bb": -1.0870064518052438,
+        "jam_difference_se_bb": 0.099126612603693,
+        "jam_minus_action_bb": -0.10635,
+        "mean_bb": -1.0871,
+        "probability": 1.7838259736890905e-05,
+        "regret_se_bb": 0.0993171395207862,
+        "samples": 10000,
+        "se_bb": 0.09932209143380277,
+        "stored_cumulative_regret_half_bb": -22490.5625,
+        "current_regret_matching_probability": 0.0
+      },
+      {
+        "action": "raise 5",
+        "ci95_bb": [
+          -1.479592174386824,
+          -1.0919578256131757
+        ],
+        "estimated_regret_bb": -1.2856814518052422,
+        "jam_difference_se_bb": 0.09325098020379409,
+        "jam_minus_action_bb": 0.092325,
+        "mean_bb": -1.285775,
+        "probability": 5.287037492962554e-05,
+        "regret_se_bb": 0.09887978385269423,
+        "samples": 10000,
+        "se_bb": 0.09888631346266542,
+        "stored_cumulative_regret_half_bb": -19426.01171875,
+        "current_regret_matching_probability": 0.0
+      },
+      {
+        "action": "allin",
+        "ci95_bb": [
+          -1.401688599335476,
+          -0.9852114006645238
+        ],
+        "estimated_regret_bb": -1.1933564518052449,
+        "jam_difference_se_bb": 0.0,
+        "jam_minus_action_bb": 0.0,
+        "mean_bb": -1.19345,
+        "probability": 5.175596925255377e-06,
+        "regret_se_bb": 0.10623960471854943,
+        "samples": 10000,
+        "se_bb": 0.10624418333442655,
+        "stored_cumulative_regret_half_bb": -158357.671875,
+        "current_regret_matching_probability": 0.0
+      }
+    ],
+    "attempts": 2064426,
+    "hand": "Q5o",
+    "spot": "BTN RFI"
+  },
+  {
+    "actions": [
+      {
+        "action": "fold",
+        "ci95_bb": [
+          0.0,
+          0.0
+        ],
+        "estimated_regret_bb": 0.00023482876186883028,
+        "jam_difference_se_bb": 0.16864747065244637,
+        "jam_minus_action_bb": -1.9344166664123534,
+        "mean_bb": 0.0,
+        "probability": 0.9999064803123474,
+        "regret_se_bb": 1.2138776371036276e-05,
+        "samples": 10000,
+        "se_bb": 0.0,
+        "stored_cumulative_regret_half_bb": 154.77310180664062,
+        "current_regret_matching_probability": 1.0
+      },
+      {
+        "action": "call",
+        "ci95_bb": [
+          -2.7371955588046153,
+          -2.178171107989208
+        ],
+        "estimated_regret_bb": -2.4574485046349133,
+        "jam_difference_se_bb": 0.17618480780827844,
+        "jam_minus_action_bb": 0.5232666669845581,
+        "mean_bb": -2.4576833333969117,
+        "probability": 7.73737410781905e-05,
+        "regret_se_bb": 0.14259631309590165,
+        "samples": 10000,
+        "se_bb": 0.14260827826923653,
+        "stored_cumulative_regret_half_bb": -15498.4765625,
+        "current_regret_matching_probability": 0.0
+      },
+      {
+        "action": "raise 14",
+        "ci95_bb": [
+          -3.1451073739301396,
+          -2.581225959276037
+        ],
+        "estimated_regret_bb": -2.862931837841097,
+        "jam_difference_se_bb": 0.14983768432318942,
+        "jam_minus_action_bb": 0.9287500001907348,
+        "mean_bb": -2.8631666666030884,
+        "probability": 1.4589524653274566e-05,
+        "regret_se_bb": 0.1438406568816257,
+        "samples": 10000,
+        "se_bb": 0.14384729965665874,
+        "stored_cumulative_regret_half_bb": -17815.896484375,
+        "current_regret_matching_probability": 0.0
+      },
+      {
+        "action": "allin",
+        "ci95_bb": [
+          -2.264965708891148,
+          -1.6038676239335585
+        ],
+        "estimated_regret_bb": -1.9341818376503317,
+        "jam_difference_se_bb": 0.0,
+        "jam_minus_action_bb": 0.0,
+        "mean_bb": -1.9344166664123534,
+        "probability": 1.4972820281400345e-06,
+        "regret_se_bb": 0.16864199533370297,
+        "samples": 10000,
+        "se_bb": 0.16864747065244637,
+        "stored_cumulative_regret_half_bb": -19507.111328125,
+        "current_regret_matching_probability": 0.0
+      }
+    ],
+    "attempts": 42193878,
+    "hand": "53s",
+    "spot": "UTG 2BB -> BTN"
+  },
+  {
+    "actions": [
+      {
+        "action": "fold",
+        "ci95_bb": [
+          0.0,
+          0.0
+        ],
+        "estimated_regret_bb": -0.9024797382170126,
+        "jam_difference_se_bb": 0.155733480602301,
+        "jam_minus_action_bb": 0.48207499980926516,
+        "mean_bb": 0.0,
+        "probability": 2.0588677429600466e-08,
+        "regret_se_bb": 0.16089436193939746,
+        "samples": 10000,
+        "se_bb": 0.0,
+        "stored_cumulative_regret_half_bb": -26722.517578125,
+        "current_regret_matching_probability": 0.0
+      },
+      {
+        "action": "call",
+        "ci95_bb": [
+          0.6403275973262609,
+          1.314355735498446
+        ],
+        "estimated_regret_bb": 0.07486192819534093,
+        "jam_difference_se_bb": 0.16468873333155196,
+        "jam_minus_action_bb": -0.4952666666030884,
+        "mean_bb": 0.9773416664123535,
+        "probability": 0.8720892667770386,
+        "regret_se_bb": 0.02059706957682918,
+        "samples": 10000,
+        "se_bb": 0.1719459536153534,
+        "stored_cumulative_regret_half_bb": 2576.894287109375,
+        "current_regret_matching_probability": 1.0
+      },
+      {
+        "action": "raise 14",
+        "ci95_bb": [
+          0.03492276731818128,
+          0.6882605658879954
+        ],
+        "estimated_regret_bb": -0.5408880716139242,
+        "jam_difference_se_bb": 0.13541296852158313,
+        "jam_minus_action_bb": 0.12048333320617675,
+        "mean_bb": 0.3615916666030884,
+        "probability": 0.09554847329854965,
+        "regret_se_bb": 0.15350655197145732,
+        "samples": 10000,
+        "se_bb": 0.16666780575760567,
+        "stored_cumulative_regret_half_bb": -3496.947509765625,
+        "current_regret_matching_probability": 0.0
+      },
+      {
+        "action": "allin",
+        "ci95_bb": [
+          0.1768373778287552,
+          0.7873126217897751
+        ],
+        "estimated_regret_bb": -0.4204047384077474,
+        "jam_difference_se_bb": 0.0,
+        "jam_minus_action_bb": 0.0,
+        "mean_bb": 0.48207499980926516,
+        "probability": 0.03236224502325058,
+        "regret_se_bb": 0.14855792018871508,
+        "samples": 10000,
+        "se_bb": 0.155733480602301,
+        "stored_cumulative_regret_half_bb": -6292.89501953125,
+        "current_regret_matching_probability": 0.0
+      }
+    ],
+    "attempts": 15497213,
+    "hand": "AQo",
+    "spot": "UTG 2BB -> BTN"
+  }
+]
