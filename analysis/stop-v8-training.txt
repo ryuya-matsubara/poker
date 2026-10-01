@@ -1,0 +1,1 @@
+User requested at 2026-10-01 19:21 JST: stop further training and proceed with currently saved results. Preserve complete joint checkpoints and all scientific diagnostics. Do not call the partial strategy converged or GTO-certified.
