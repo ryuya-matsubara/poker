@@ -1,0 +1,80 @@
+name: Prepare current experimental strategy snapshot
+on:
+  push:
+    branches: [solver-jam-final]
+    paths: [analysis/start-current-snapshot.txt]
+permissions:
+  contents: write
+  actions: read
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: solver-jam-final
+      - uses: actions/download-artifact@v4
+        with:
+          run-id: 36721624956
+          github-token: ${{ github.token }}
+          name: measurements-80000000-seed42
+          path: raw/42
+      - uses: actions/download-artifact@v4
+        with:
+          run-id: 36789601087
+          github-token: ${{ github.token }}
+          name: measurements-95000000-seed73
+          path: raw/73
+      - uses: actions/download-artifact@v4
+        with:
+          run-id: 36789601087
+          github-token: ${{ github.token }}
+          name: measurements-84000000-seed101
+          path: raw/101
+      - uses: actions/download-artifact@v4
+        with:
+          run-id: 36721624956
+          github-token: ${{ github.token }}
+          name: measurements-60000000-seed42
+          path: raw/60-42
+      - uses: actions/download-artifact@v4
+        with:
+          run-id: 36721624956
+          github-token: ${{ github.token }}
+          name: measurements-60000000-seed73
+          path: raw/60-73
+      - uses: actions/download-artifact@v4
+        with:
+          run-id: 36721624956
+          github-token: ${{ github.token }}
+          name: measurements-60000000-seed101
+          path: raw/60-101
+      - name: Annotate stored regrets and export unchanged snapshot
+        run: |
+          python3 -m py_compile tools/export_current_snapshot.py tools/verify_current_snapshot.py
+          python3 tools/inspect_blueprint.py raw/42/80m-blueprint.bin raw/42/80m-ev.json
+          python3 tools/inspect_blueprint.py raw/73/95m-blueprint.bin raw/73/95m-ev.json
+          python3 tools/inspect_blueprint.py raw/101/84m-blueprint.bin raw/101/84m-ev.json
+          python3 tools/export_current_snapshot.py
+          python3 tools/verify_current_snapshot.py
+          python3 tools/test_preflop_export.py
+          python3 tools/test_solver_analysis.py
+          node tools/test_preflop_frontend.cjs
+          python3 tools/validate_preflop.py preflop_charts.json --policy preflop_policy.json
+      - name: Commit verified experimental candidate only
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html README.md preflop_charts.json preflop_policy.json analysis
+          git commit -m 'Prepare user-requested unconverged v8 snapshot from preserved output'
+          git push origin HEAD:solver-jam-final
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: current-snapshot-evidence
+          path: |
+            analysis/quality.json
+            analysis/preflop_model_fix.md
+            preflop_charts.json
+            preflop_policy.json
