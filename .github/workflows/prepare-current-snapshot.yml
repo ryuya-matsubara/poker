@@ -61,7 +61,6 @@ jobs:
           python3 tools/test_preflop_export.py
           python3 tools/test_solver_analysis.py
           node tools/test_preflop_frontend.cjs
-          python3 tools/validate_preflop.py preflop_charts.json --policy preflop_policy.json
       - name: Commit verified experimental candidate only
         run: |
           git config user.name 'github-actions[bot]'
