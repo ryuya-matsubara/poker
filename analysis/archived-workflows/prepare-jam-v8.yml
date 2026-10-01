@@ -1,0 +1,173 @@
+name: Prepare validated v8 release
+on:
+  push:
+    branches: [solver-jam-final]
+    paths: [analysis/start-v8-release.txt]
+  workflow_dispatch:
+permissions:
+  contents: write
+  actions: read
+concurrency:
+  group: preflop-release-v8
+  cancel-in-progress: false
+env:
+  TRAINING_RUN: '36721624956'
+  ABLATION_RUN: '36734021921'
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: solver-jam-final
+      - name: Require successful immutable inputs
+        uses: actions/github-script@v7
+        with:
+          script: |
+            for (const [label,id] of [['training',Number(process.env.TRAINING_RUN)],['ablation',Number(process.env.ABLATION_RUN)]]) {
+              const r=await github.rest.actions.getWorkflowRun({...context.repo,run_id:id});
+              if(r.data.status!=='completed'||r.data.conclusion!=='success') throw new Error(label+' workflow is not successful');
+            }
+      - uses: actions/download-artifact@v4
+        with:
+          run-id: 36721624956
+          github-token: ${{ github.token }}
+          name: measurements-30000000-seed42
+          path: raw/30-42
+      - uses: actions/download-artifact@v4
+        with:
+          run-id: 36721624956
+          github-token: ${{ github.token }}
+          name: measurements-60000000-seed42
+          path: raw/60-42
+      - uses: actions/download-artifact@v4
+        with:
+          run-id: 36721624956
+          github-token: ${{ github.token }}
+          name: measurements-120000000-seed42
+          path: raw/120-42
+      - uses: actions/download-artifact@v4
+        with:
+          run-id: 36721624956
+          github-token: ${{ github.token }}
+          name: measurements-30000000-seed73
+          path: raw/30-73
+      - uses: actions/download-artifact@v4
+        with:
+          run-id: 36721624956
+          github-token: ${{ github.token }}
+          name: measurements-60000000-seed73
+          path: raw/60-73
+      - uses: actions/download-artifact@v4
+        with:
+          run-id: 36721624956
+          github-token: ${{ github.token }}
+          name: measurements-120000000-seed73
+          path: raw/120-73
+      - uses: actions/download-artifact@v4
+        with:
+          run-id: 36721624956
+          github-token: ${{ github.token }}
+          name: measurements-30000000-seed101
+          path: raw/30-101
+      - uses: actions/download-artifact@v4
+        with:
+          run-id: 36721624956
+          github-token: ${{ github.token }}
+          name: measurements-60000000-seed101
+          path: raw/60-101
+      - uses: actions/download-artifact@v4
+        with:
+          run-id: 36721624956
+          github-token: ${{ github.token }}
+          name: measurements-120000000-seed101
+          path: raw/120-101
+      - uses: actions/download-artifact@v4
+        with:
+          run-id: 36734021921
+          github-token: ${{ github.token }}
+          pattern: jam-v8-*-seed42-30m
+          path: raw-ablation
+      - name: Normalize immutable artifacts
+        run: |
+          set -euo pipefail
+          mkdir -p runs ablation
+          for seed in 42 73 101; do
+            dest="runs/jam-final-seed${seed}"
+            mkdir -p "$dest"
+            for length in 30 60 120; do
+              src="raw/${length}-${seed}"
+              cp "$src/${length}m-chart.json" "$dest/${length}m-chart.json"
+              cp "$src/${length}m-ev.json" "$dest/${length}m-ev.json"
+              cp "$src/${length}m-blueprint.bin" "$dest/${length}m-blueprint.bin"
+              cp "$src/final-policy.json" "$dest/${length}m-policy.json"
+              cp "$src/final-frequency.json" "$dest/${length}m-frequency.json"
+            done
+            cp "raw/120-${seed}/training.log" "$dest/training.log"
+          done
+          for src in raw-ablation/jam-v8-*-seed42-30m; do
+            base="$(basename "$src")"
+            dest="ablation/${base/jam-v8-/jam-}"
+            cp -R "$src" "$dest"
+          done
+          cmp ablation/jam-full-seed42-30m/chart.json runs/jam-final-seed42/30m-chart.json
+          cmp ablation/jam-full-seed42-30m/ev.json runs/jam-final-seed42/30m-ev.json
+          for source in raw-ablation/jam-v8-*-seed42-30m/source-sha256.txt; do
+            diff -u raw-ablation/jam-v8-full-seed42-30m/source-sha256.txt "$source"
+          done
+      - name: Attach actual cumulative regrets
+        run: |
+          for seed in 42 73 101; do
+            for length in 30 60 120; do
+              python3 tools/inspect_blueprint.py "runs/jam-final-seed${seed}/${length}m-blueprint.bin" "runs/jam-final-seed${seed}/${length}m-ev.json"
+            done
+          done
+      - name: Verify immutable training source
+        id: source
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const crypto=require('crypto'),fs=require('fs');
+            const run=await github.rest.actions.getWorkflowRun({...context.repo,run_id:Number(process.env.TRAINING_RUN)});
+            const paths=['tools/continuation.rs','tools/continuation_legacy.rs','tools/upgrade_solver.py','tools/patch_solver_base.py','tools/add_resumable_solver.py','tools/trainer_checkpoint.rs'];
+            const manifest={training_commit:run.data.head_sha,upstream_commit:'4ade6a9e15a841c41867afde1258b9d110cd6fb1',files:{}};
+            for(const path of paths){
+              const remote=await github.rest.repos.getContent({...context.repo,path,ref:run.data.head_sha});
+              const trained=Buffer.from(remote.data.content,'base64');
+              const current=fs.readFileSync(path);
+              const hash=x=>crypto.createHash('sha256').update(x).digest('hex');
+              if(hash(trained)!==hash(current)) throw new Error('Training source mismatch: '+path);
+              manifest.files[path]=hash(trained);
+            }
+            fs.writeFileSync('analysis/source_manifest.json',JSON.stringify(manifest,null,2));
+            core.setOutput('sha',run.data.head_sha);
+      - name: Generate release and enforce quality gate
+        run: |
+          python3 -m py_compile tools/*.py
+          python3 tools/promote_jam.py runs ablation --training-source ${{ steps.source.outputs.sha }}
+          python3 tools/release_gate.py analysis/quality.json
+          python3 tools/test_preflop_export.py
+          python3 tools/test_solver_analysis.py
+          node tools/test_preflop_frontend.cjs
+          python3 tools/validate_preflop.py preflop_charts.json --policy preflop_policy.json --seed analysis/jam/seed73-120m/120m-chart.json --half analysis/jam/seed42-60m/60m-chart.json
+      - name: Commit validated release candidate
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html README.md preflop_charts.json preflop_policy.json analysis
+          if ! git diff --cached --quiet; then
+            git commit -m 'Prepare validated resumable-v8 strategy release'
+            git push origin HEAD:solver-jam-final
+          fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: prepared-v8-release
+          path: |
+            preflop_charts.json
+            preflop_policy.json
+            analysis/quality.json
+            analysis/preflop_model_fix.md
+            analysis/continuation_evaluation.md
+            analysis/jam
