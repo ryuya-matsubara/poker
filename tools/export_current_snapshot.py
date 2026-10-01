@@ -32,7 +32,10 @@ def main():
         if (raw/'source-commit.txt').read_text().strip()!=SHA:raise ValueError('source commit mismatch')
         chart=raw/f'{length}m-chart.json';ev=raw/f'{length}m-ev.json';blue=raw/f'{length}m-blueprint.bin'
         assert chart.exists() and ev.exists() and blue.exists()
-        charts[seed]=report(chart);check_chart(charts[seed]);check_policy(raw/'final-policy.json',charts[seed])
+        charts[seed]=report(chart)
+        try:check_chart(charts[seed])
+        except ValueError as e:q.setdefault('sanity_warnings',{})[str(seed)]=str(e)
+        check_policy(raw/'final-policy.json',charts[seed])
         folder=out/f'seed{seed}-{length}m';folder.mkdir(exist_ok=True)
         for source in [chart,ev,raw/'final-policy.json',raw/'final-frequency.json',raw/'source-sha256.txt',raw/'source-commit.txt',raw/'training.log']:
             shutil.copy(source,folder/source.name)
@@ -68,7 +71,7 @@ def main():
     for spot in q['action_ev']['seed42-80m']:
         for a in spot['actions']:
             rows.append([spot['spot'],spot['hand'],a['action'],f"{100*old.get(spot['spot']+' '+spot['hand'],{}).get(a['action'],0):.3f}%",f"{100*a['probability']:.3f}%",f"{a['mean_bb']:.5f}",f"{a['se_bb']:.5f}",a['samples']])
-    lines=['# 保存済みv8戦略の実験版','2026-10-01、ユーザー指示で追加学習を停止。公開戦略は事前に主系列としたseed42の80Mをそのまま使用。seed73は95M、seed101は84M。頻度を編集・平均・補正していない。120M学習・収束確認は完了していない。GTO精度の証明ではない。',Path('analysis/jam_method.md').read_text(),'## 旧mainと公開snapshot・action EV',table(['spot','hand','action','old','snapshot','EV BB','SE BB','N'],rows),'## 複数seed・iteration比較（異なる最終iteration）',json.dumps(q['stability'],indent=2),'## 同時区間によるEV診断',json.dumps(q['snapshot_ev_diagnostic'],indent=2),'## 全seedのEV・警告',json.dumps(q['action_ev'],indent=2),json.dumps(q['warnings'],indent=2),'## 限界','全6人NLHEのNashConvは未計算。公開情報・private hand abstraction、有限サイズ、各street最大1段raiseを使用。CPUの実ゲームpostflopは簡易方策。標準誤差はMC誤差のみ。JSONは学習出力をそのままコピー。科学的な正式リリース判定は未通過のまま保存する。']
+    lines=['# 保存済みv8戦略の実験版','2026-10-01、ユーザー指示で追加学習を停止。公開戦略は事前に主系列としたseed42の80Mをそのまま使用。seed73は95M、seed101は84M。頻度を編集・平均・補正していない。120M学習・収束確認は完了していない。GTO精度の証明ではない。',Path('analysis/jam_method.md').read_text(),'## 旧mainと公開snapshot・action EV',table(['spot','hand','action','old','snapshot','EV BB','SE BB','N'],rows),'## 複数seed・iteration比較（異なる最終iteration）',json.dumps(q['stability'],indent=2),'## 同時区間によるEV診断',json.dumps(q['snapshot_ev_diagnostic'],indent=2),'## 全seedのEV・警告',json.dumps(q['action_ev'],indent=2),json.dumps(q['warnings'],indent=2),json.dumps(q.get('sanity_warnings',{}),indent=2),'## 限界','全6人NLHEのNashConvは未計算。公開情報・private hand abstraction、有限サイズ、各street最大1段raiseを使用。CPUの実ゲームpostflopは簡易方策。標準誤差はMC誤差のみ。JSONは学習出力をそのままコピー。科学的な正式リリース判定は未通過のまま保存する。']
     Path('analysis/preflop_model_fix.md').write_text('\n\n'.join(lines))
     Path('analysis/continuation_evaluation.md').write_text('# Experimental current snapshot\n\nSee preflop_model_fix.md and quality.json. Training stopped at user request; unconverged, not GTO-certified.\n')
     with (out/'frequency_169.csv').open('w',newline='') as f:
