@@ -29,7 +29,7 @@ jobs:
             python3 tools/verify_current_snapshot.py
           else
             python3 tools/release_gate.py analysis/quality.json
-          fi
+            fi
           python3 tools/test_solver_analysis.py
           python3 tools/test_preflop_export.py
           python3 tools/validate_preflop.py preflop_charts.json --policy preflop_policy.json
