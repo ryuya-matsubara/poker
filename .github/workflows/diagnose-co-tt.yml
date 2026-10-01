@@ -1,0 +1,74 @@
+name: Diagnose CO TT against MP open
+on:
+  push:
+    branches: [solver-jam-final]
+    paths: [analysis/start-co-tt-diagnostic.txt]
+permissions:
+  contents: read
+  actions: read
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - seed: 42
+            iterations: 80000000
+            run: 36721624956
+          - seed: 73
+            iterations: 95000000
+            run: 36789601087
+          - seed: 101
+            iterations: 84000000
+            run: 36789601087
+    env:
+      GH_TOKEN: ${{ github.token }}
+      POKER_MODEL: full
+      POKER_DIAG_SEED: 9127
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          ref: 679913ade0d3a19e10573c5a9f7b7636d5bb2a3b
+          path: model
+      - run: bash model/tools/provision_solver_memory.sh
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Build identical game with added diagnostic only
+        run: |
+          git clone https://github.com/exinori/DCFR-SOLVER.git model/solver
+          git -C model/solver checkout 4ade6a9e15a841c41867afde1258b9d110cd6fb1
+          python3 model/tools/upgrade_solver.py model/solver/src
+          python3 model/tools/add_resumable_solver.py model/solver/src
+          python3 tools/diagnose_co_tt.py model/solver/src
+          cargo test --release --lib --manifest-path model/solver/Cargo.toml preflop::
+      - name: Download complete frozen joint checkpoint
+        run: |
+          mkdir -p resume result
+          gh run download ${{ matrix.run }} --repo "${{ github.repository }}" --name "joint-${{ matrix.iterations }}-seed${{ matrix.seed }}" --dir resume
+      - name: Evaluate actions without further training
+        env:
+          POKER_RESUME: ${{ github.workspace }}/resume/joint-checkpoint.gz
+        run: |
+          for samples in 10000 40000; do
+            POKER_EV_OUTPUT="$PWD/result/ev-${{ matrix.seed }}-$samples.json" POKER_EV_SAMPLES="$samples" /usr/bin/time -v cargo run --release --manifest-path model/solver/Cargo.toml -- preflop --iterations ${{ matrix.iterations }} --seed ${{ matrix.seed }} --open-size 5 --sb-open-size 6 --bet3-size 14 --bet4-size 28 --oop-pot-tax 0 --output result/blueprint.bin --chart-output result/chart.json 2>result/diagnostic-$samples.log
+          done
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          for f in Path('result').glob('ev-*.json'):
+              spots=json.loads(f.read_text())
+              assert len(spots)==1 and spots[0]['spot']=='MP 2.5BB -> CO' and spots[0]['hand']=='TT'
+              assert [a['action'] for a in spots[0]['actions']]==['fold','call','raise 14','allin']
+              assert abs(sum(a['probability'] for a in spots[0]['actions'])-1)<1e-4
+              print(f, json.dumps(spots,indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: co-tt-ev-seed${{ matrix.seed }}
+          path: |
+            result/*.json
+            result/*.log
+          retention-days: 90
