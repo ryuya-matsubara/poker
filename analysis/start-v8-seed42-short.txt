@@ -1,0 +1,2 @@
+Resume immutable v8 seed42 from the preserved 80M joint checkpoint in 2M segments after the 4M segment reached the 350-minute limit.
+Source training run: 36721624956
