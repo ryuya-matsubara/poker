@@ -1,0 +1,258 @@
+# DRAFT ONLY. Do not install/trigger without user approval: user banned Actions calculation.
+# This workflow only copies/splits existing data; no solver, training or EV calculation.
+name: Split existing TT diagnostic checkpoint only
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  split_saved_data:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Download existing complete state; no solver execution
+        run: |
+          mkdir -p checkpoints parts
+          gh run download 36721624956 --repo "${{ github.repository }}" --name joint-80000000-seed42 --dir checkpoints
+      - name: Split unchanged compressed bytes into 256MiB segments
+        id: parts
+        run: |
+          set -euo pipefail
+          sha256sum checkpoints/joint-checkpoint.gz > parts/source.sha256
+          split -d -b 256M checkpoints/joint-checkpoint.gz parts/part-
+          sha256sum parts/part-* > parts/segments.sha256
+          count=$(find parts -name 'part-*' -type f | wc -l)
+          test "$count" -le 32
+          echo "count=$count" >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tt-joint42-manifest
+          path: parts/*.sha256
+          retention-days: 7
+      - uses: actions/upload-artifact@v4
+        if: ${{ fromJSON(steps.parts.outputs.count) > 0 }}
+        with:
+          name: tt-joint42-part-00
+          path: parts/part-00
+          compression-level: 0
+          retention-days: 7
+      - uses: actions/upload-artifact@v4
+        if: ${{ fromJSON(steps.parts.outputs.count) > 1 }}
+        with:
+          name: tt-joint42-part-01
+          path: parts/part-01
+          compression-level: 0
+          retention-days: 7
+      - uses: actions/upload-artifact@v4
+        if: ${{ fromJSON(steps.parts.outputs.count) > 2 }}
+        with:
+          name: tt-joint42-part-02
+          path: parts/part-02
+          compression-level: 0
+          retention-days: 7
+      - uses: actions/upload-artifact@v4
+        if: ${{ fromJSON(steps.parts.outputs.count) > 3 }}
+        with:
+          name: tt-joint42-part-03
+          path: parts/part-03
+          compression-level: 0
+          retention-days: 7
+      - uses: actions/upload-artifact@v4
+        if: ${{ fromJSON(steps.parts.outputs.count) > 4 }}
+        with:
+          name: tt-joint42-part-04
+          path: parts/part-04
+          compression-level: 0
+          retention-days: 7
+      - uses: actions/upload-artifact@v4
+        if: ${{ fromJSON(steps.parts.outputs.count) > 5 }}
+        with:
+          name: tt-joint42-part-05
+          path: parts/part-05
+          compression-level: 0
+          retention-days: 7
+      - uses: actions/upload-artifact@v4
+        if: ${{ fromJSON(steps.parts.outputs.count) > 6 }}
+        with:
+          name: tt-joint42-part-06
+          path: parts/part-06
+          compression-level: 0
+          retention-days: 7
+      - uses: actions/upload-artifact@v4
+        if: ${{ fromJSON(steps.parts.outputs.count) > 7 }}
+        with:
+          name: tt-joint42-part-07
+          path: parts/part-07
+          compression-level: 0
+          retention-days: 7
+      - uses: actions/upload-artifact@v4
+        if: ${{ fromJSON(steps.parts.outputs.count) > 8 }}
+        with:
+          name: tt-joint42-part-08
+          path: parts/part-08
+          compression-level: 0
+          retention-days: 7
+      - uses: actions/upload-artifact@v4
+        if: ${{ fromJSON(steps.parts.outputs.count) > 9 }}
+        with:
+          name: tt-joint42-part-09
+          path: parts/part-09
+          compression-level: 0
+          retention-days: 7
+      - uses: actions/upload-artifact@v4
+        if: ${{ fromJSON(steps.parts.outputs.count) > 10 }}
+        with:
+          name: tt-joint42-part-10
+          path: parts/part-10
+          compression-level: 0
+          retention-days: 7
+      - uses: actions/upload-artifact@v4
+        if: ${{ fromJSON(steps.parts.outputs.count) > 11 }}
+        with:
+          name: tt-joint42-part-11
+          path: parts/part-11
+          compression-level: 0
+          retention-days: 7
+      - uses: actions/upload-artifact@v4
+        if: ${{ fromJSON(steps.parts.outputs.count) > 12 }}
+        with:
+          name: tt-joint42-part-12
+          path: parts/part-12
+          compression-level: 0
+          retention-days: 7
+      - uses: actions/upload-artifact@v4
+        if: ${{ fromJSON(steps.parts.outputs.count) > 13 }}
+        with:
+          name: tt-joint42-part-13
+          path: parts/part-13
+          compression-level: 0
+          retention-days: 7
+      - uses: actions/upload-artifact@v4
+        if: ${{ fromJSON(steps.parts.outputs.count) > 14 }}
+        with:
+          name: tt-joint42-part-14
+          path: parts/part-14
+          compression-level: 0
+          retention-days: 7
+      - uses: actions/upload-artifact@v4
+        if: ${{ fromJSON(steps.parts.outputs.count) > 15 }}
+        with:
+          name: tt-joint42-part-15
+          path: parts/part-15
+          compression-level: 0
+          retention-days: 7
+      - uses: actions/upload-artifact@v4
+        if: ${{ fromJSON(steps.parts.outputs.count) > 16 }}
+        with:
+          name: tt-joint42-part-16
+          path: parts/part-16
+          compression-level: 0
+          retention-days: 7
+      - uses: actions/upload-artifact@v4
+        if: ${{ fromJSON(steps.parts.outputs.count) > 17 }}
+        with:
+          name: tt-joint42-part-17
+          path: parts/part-17
+          compression-level: 0
+          retention-days: 7
+      - uses: actions/upload-artifact@v4
+        if: ${{ fromJSON(steps.parts.outputs.count) > 18 }}
+        with:
+          name: tt-joint42-part-18
+          path: parts/part-18
+          compression-level: 0
+          retention-days: 7
+      - uses: actions/upload-artifact@v4
+        if: ${{ fromJSON(steps.parts.outputs.count) > 19 }}
+        with:
+          name: tt-joint42-part-19
+          path: parts/part-19
+          compression-level: 0
+          retention-days: 7
+      - uses: actions/upload-artifact@v4
+        if: ${{ fromJSON(steps.parts.outputs.count) > 20 }}
+        with:
+          name: tt-joint42-part-20
+          path: parts/part-20
+          compression-level: 0
+          retention-days: 7
+      - uses: actions/upload-artifact@v4
+        if: ${{ fromJSON(steps.parts.outputs.count) > 21 }}
+        with:
+          name: tt-joint42-part-21
+          path: parts/part-21
+          compression-level: 0
+          retention-days: 7
+      - uses: actions/upload-artifact@v4
+        if: ${{ fromJSON(steps.parts.outputs.count) > 22 }}
+        with:
+          name: tt-joint42-part-22
+          path: parts/part-22
+          compression-level: 0
+          retention-days: 7
+      - uses: actions/upload-artifact@v4
+        if: ${{ fromJSON(steps.parts.outputs.count) > 23 }}
+        with:
+          name: tt-joint42-part-23
+          path: parts/part-23
+          compression-level: 0
+          retention-days: 7
+      - uses: actions/upload-artifact@v4
+        if: ${{ fromJSON(steps.parts.outputs.count) > 24 }}
+        with:
+          name: tt-joint42-part-24
+          path: parts/part-24
+          compression-level: 0
+          retention-days: 7
+      - uses: actions/upload-artifact@v4
+        if: ${{ fromJSON(steps.parts.outputs.count) > 25 }}
+        with:
+          name: tt-joint42-part-25
+          path: parts/part-25
+          compression-level: 0
+          retention-days: 7
+      - uses: actions/upload-artifact@v4
+        if: ${{ fromJSON(steps.parts.outputs.count) > 26 }}
+        with:
+          name: tt-joint42-part-26
+          path: parts/part-26
+          compression-level: 0
+          retention-days: 7
+      - uses: actions/upload-artifact@v4
+        if: ${{ fromJSON(steps.parts.outputs.count) > 27 }}
+        with:
+          name: tt-joint42-part-27
+          path: parts/part-27
+          compression-level: 0
+          retention-days: 7
+      - uses: actions/upload-artifact@v4
+        if: ${{ fromJSON(steps.parts.outputs.count) > 28 }}
+        with:
+          name: tt-joint42-part-28
+          path: parts/part-28
+          compression-level: 0
+          retention-days: 7
+      - uses: actions/upload-artifact@v4
+        if: ${{ fromJSON(steps.parts.outputs.count) > 29 }}
+        with:
+          name: tt-joint42-part-29
+          path: parts/part-29
+          compression-level: 0
+          retention-days: 7
+      - uses: actions/upload-artifact@v4
+        if: ${{ fromJSON(steps.parts.outputs.count) > 30 }}
+        with:
+          name: tt-joint42-part-30
+          path: parts/part-30
+          compression-level: 0
+          retention-days: 7
+      - uses: actions/upload-artifact@v4
+        if: ${{ fromJSON(steps.parts.outputs.count) > 31 }}
+        with:
+          name: tt-joint42-part-31
+          path: parts/part-31
+          compression-level: 0
+          retention-days: 7
