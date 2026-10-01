@@ -30,23 +30,59 @@ jobs:
               if(r.data.status!=='completed'||r.data.conclusion!=='success') throw new Error(label+' workflow is not successful');
             }
       - uses: actions/download-artifact@v4
-        with: {run-id: 36721624956, github-token: ${{ github.token }}, name: measurements-30000000-seed42, path: raw/30-42}
+        with:
+          run-id: 36721624956
+          github-token: ${{ github.token }}
+          name: measurements-30000000-seed42
+          path: raw/30-42
       - uses: actions/download-artifact@v4
-        with: {run-id: 36721624956, github-token: ${{ github.token }}, name: measurements-60000000-seed42, path: raw/60-42}
+        with:
+          run-id: 36721624956
+          github-token: ${{ github.token }}
+          name: measurements-60000000-seed42
+          path: raw/60-42
       - uses: actions/download-artifact@v4
-        with: {run-id: 36721624956, github-token: ${{ github.token }}, name: measurements-120000000-seed42, path: raw/120-42}
+        with:
+          run-id: 36721624956
+          github-token: ${{ github.token }}
+          name: measurements-120000000-seed42
+          path: raw/120-42
       - uses: actions/download-artifact@v4
-        with: {run-id: 36721624956, github-token: ${{ github.token }}, name: measurements-30000000-seed73, path: raw/30-73}
+        with:
+          run-id: 36721624956
+          github-token: ${{ github.token }}
+          name: measurements-30000000-seed73
+          path: raw/30-73
       - uses: actions/download-artifact@v4
-        with: {run-id: 36721624956, github-token: ${{ github.token }}, name: measurements-60000000-seed73, path: raw/60-73}
+        with:
+          run-id: 36721624956
+          github-token: ${{ github.token }}
+          name: measurements-60000000-seed73
+          path: raw/60-73
       - uses: actions/download-artifact@v4
-        with: {run-id: 36721624956, github-token: ${{ github.token }}, name: measurements-120000000-seed73, path: raw/120-73}
+        with:
+          run-id: 36721624956
+          github-token: ${{ github.token }}
+          name: measurements-120000000-seed73
+          path: raw/120-73
       - uses: actions/download-artifact@v4
-        with: {run-id: 36721624956, github-token: ${{ github.token }}, name: measurements-30000000-seed101, path: raw/30-101}
+        with:
+          run-id: 36721624956
+          github-token: ${{ github.token }}
+          name: measurements-30000000-seed101
+          path: raw/30-101
       - uses: actions/download-artifact@v4
-        with: {run-id: 36721624956, github-token: ${{ github.token }}, name: measurements-60000000-seed101, path: raw/60-101}
+        with:
+          run-id: 36721624956
+          github-token: ${{ github.token }}
+          name: measurements-60000000-seed101
+          path: raw/60-101
       - uses: actions/download-artifact@v4
-        with: {run-id: 36721624956, github-token: ${{ github.token }}, name: measurements-120000000-seed101, path: raw/120-101}
+        with:
+          run-id: 36721624956
+          github-token: ${{ github.token }}
+          name: measurements-120000000-seed101
+          path: raw/120-101
       - uses: actions/download-artifact@v4
         with:
           run-id: 36734021921
