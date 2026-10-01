@@ -1,1 +1,1 @@
-User requested at 2026-10-01 19:21 JST: stop further training and proceed with currently saved results. Preserve complete joint checkpoints and all scientific diagnostics. Do not call the partial strategy converged or GTO-certified.
+2026-10-01 19:55 JST user: do not use GitHub Actions for calculation; calculate in ChatGPT. Cancel diagnostic run36851593526. Preserve complete checkpoints and deployed snapshot. No new remote solver jobs. A single stop-management job is used solely to issue cancellation because the connector has no cancel-run mutation.
