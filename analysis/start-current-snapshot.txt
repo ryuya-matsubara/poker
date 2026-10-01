@@ -1,0 +1,1 @@
+User requested stopping training and proceeding with current results. Primary series seed42 80M is published unchanged, cross-check seed73 95M andseed101 84M. Scientific convergence remains unproven. Structural/source/frontend checks required. Do not restart training.
