@@ -1,0 +1,152 @@
+name: Recover seed42 with 2M resumable segments
+on:
+  push:
+    branches: [solver-jam-final]
+    paths: [analysis/start-v8-seed42-short.txt]
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: recover-jam-v8-seed42-short
+  cancel-in-progress: false
+jobs:
+  s42_82:
+    uses: ./.github/workflows/train-jam-one-seed.yml
+    with:
+      seed: 42
+      start: 80000000
+      end: 82000000
+      source_run: 36721624956
+  s42_84:
+    needs: s42_82
+    uses: ./.github/workflows/train-jam-one-seed.yml
+    with:
+      seed: 42
+      start: 82000000
+      end: 84000000
+  s42_86:
+    needs: s42_84
+    uses: ./.github/workflows/train-jam-one-seed.yml
+    with:
+      seed: 42
+      start: 84000000
+      end: 86000000
+  s42_88:
+    needs: s42_86
+    uses: ./.github/workflows/train-jam-one-seed.yml
+    with:
+      seed: 42
+      start: 86000000
+      end: 88000000
+  s42_90:
+    needs: s42_88
+    uses: ./.github/workflows/train-jam-one-seed.yml
+    with:
+      seed: 42
+      start: 88000000
+      end: 90000000
+  s42_92:
+    needs: s42_90
+    uses: ./.github/workflows/train-jam-one-seed.yml
+    with:
+      seed: 42
+      start: 90000000
+      end: 92000000
+  s42_94:
+    needs: s42_92
+    uses: ./.github/workflows/train-jam-one-seed.yml
+    with:
+      seed: 42
+      start: 92000000
+      end: 94000000
+  s42_96:
+    needs: s42_94
+    uses: ./.github/workflows/train-jam-one-seed.yml
+    with:
+      seed: 42
+      start: 94000000
+      end: 96000000
+  s42_98:
+    needs: s42_96
+    uses: ./.github/workflows/train-jam-one-seed.yml
+    with:
+      seed: 42
+      start: 96000000
+      end: 98000000
+  s42_100:
+    needs: s42_98
+    uses: ./.github/workflows/train-jam-one-seed.yml
+    with:
+      seed: 42
+      start: 98000000
+      end: 100000000
+  s42_102:
+    needs: s42_100
+    uses: ./.github/workflows/train-jam-one-seed.yml
+    with:
+      seed: 42
+      start: 100000000
+      end: 102000000
+  s42_104:
+    needs: s42_102
+    uses: ./.github/workflows/train-jam-one-seed.yml
+    with:
+      seed: 42
+      start: 102000000
+      end: 104000000
+  s42_106:
+    needs: s42_104
+    uses: ./.github/workflows/train-jam-one-seed.yml
+    with:
+      seed: 42
+      start: 104000000
+      end: 106000000
+  s42_108:
+    needs: s42_106
+    uses: ./.github/workflows/train-jam-one-seed.yml
+    with:
+      seed: 42
+      start: 106000000
+      end: 108000000
+  s42_110:
+    needs: s42_108
+    uses: ./.github/workflows/train-jam-one-seed.yml
+    with:
+      seed: 42
+      start: 108000000
+      end: 110000000
+  s42_112:
+    needs: s42_110
+    uses: ./.github/workflows/train-jam-one-seed.yml
+    with:
+      seed: 42
+      start: 110000000
+      end: 112000000
+  s42_114:
+    needs: s42_112
+    uses: ./.github/workflows/train-jam-one-seed.yml
+    with:
+      seed: 42
+      start: 112000000
+      end: 114000000
+  s42_116:
+    needs: s42_114
+    uses: ./.github/workflows/train-jam-one-seed.yml
+    with:
+      seed: 42
+      start: 114000000
+      end: 116000000
+  s42_118:
+    needs: s42_116
+    uses: ./.github/workflows/train-jam-one-seed.yml
+    with:
+      seed: 42
+      start: 116000000
+      end: 118000000
+  s42_120:
+    needs: s42_118
+    uses: ./.github/workflows/train-jam-one-seed.yml
+    with:
+      seed: 42
+      start: 118000000
+      end: 120000000
